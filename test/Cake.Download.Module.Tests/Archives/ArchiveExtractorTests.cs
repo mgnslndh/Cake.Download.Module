@@ -150,6 +150,29 @@ public sealed class ArchiveExtractorTests : IDisposable
     }
 
     [Fact]
+    public void Extract_Compares_Link_Paths_Case_Insensitively()
+    {
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormat.TarGz,
+            ArchiveEntrySpec.Symlink("d1/d2/s", "../.."),
+            ArchiveEntrySpec.Symlink("d1/d2/S/foo", "../")));
+
+        Assert.Contains("'d1/d2/S/foo': its path passes through the link 'd1/d2/s'", exception.Message);
+    }
+
+    [Fact]
+    public void Extract_Compares_Link_Paths_Unicode_Normalized()
+    {
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormat.TarGz,
+            new ArchiveEntrySpec("bin/x", "x"),
+            ArchiveEntrySpec.Symlink("café", "bin"),
+            new ArchiveEntrySpec("café/f", "x")));
+
+        Assert.Contains("passes through the link", exception.Message);
+    }
+
+    [Fact]
     public void Extract_Rejects_Raw_Files()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ArchiveExtractor.Extract(_directory.Combine("x"), ArchiveFormat.File, _directory.Combine("out")));

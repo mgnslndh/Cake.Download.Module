@@ -1,5 +1,6 @@
 using System.Formats.Tar;
 using System.IO.Compression;
+using System.Text;
 using Cake.Core;
 using Cake.Download.Module.Directives;
 
@@ -109,12 +110,11 @@ internal static class ArchiveExtractor
         }
 
         var symlinkPaths = links.Where(l => l.Symbolic).Select(l => l.Path).ToList();
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         foreach (var (name, path) in entryPaths)
         {
             foreach (var symlink in links.Where(l => l.Symbolic))
             {
-                if (!string.Equals(symlink.Path, path, comparison) && IsInside(symlink.Path, path))
+                if (!SamePath(symlink.Path, path) && IsInside(symlink.Path, path))
                 {
                     throw Unsafe(name, $"its path passes through the link '{symlink.Name}'");
                 }
@@ -139,7 +139,6 @@ internal static class ArchiveExtractor
     private static bool WalksThrough(string baseDirectory, string linkName, List<string> symlinkPaths)
     {
         // Walk the raw segments one by one, so "link/.." is seen passing through "link" before it is normalized away.
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         var current = baseDirectory;
         foreach (var segment in linkName.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -149,7 +148,7 @@ internal static class ArchiveExtractor
             }
 
             current = segment == ".." ? Path.GetDirectoryName(current) ?? current : Path.Combine(current, segment);
-            if (symlinkPaths.Any(symlink => string.Equals(symlink, current, comparison)))
+            if (symlinkPaths.Any(symlink => SamePath(symlink, current)))
             {
                 return true;
             }
@@ -200,12 +199,22 @@ internal static class ArchiveExtractor
         return full;
     }
 
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    private static string Canonical(string path) => path.Normalize(NormalizationForm.FormC);
+
+    private static bool SamePath(string left, string right) =>
+        string.Equals(
+            Path.TrimEndingDirectorySeparator(Canonical(left)),
+            Path.TrimEndingDirectorySeparator(Canonical(right)),
+            PathComparison);
+
     private static bool IsInside(string root, string fullPath)
     {
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        var rootWithSeparator = Path.EndsInDirectorySeparator(root) ? root : root + Path.DirectorySeparatorChar;
-        return string.Equals(Path.TrimEndingDirectorySeparator(fullPath), Path.TrimEndingDirectorySeparator(root), comparison)
-            || fullPath.StartsWith(rootWithSeparator, comparison);
+        var canonicalRoot = Canonical(root);
+        var rootWithSeparator = Path.EndsInDirectorySeparator(canonicalRoot) ? canonicalRoot : canonicalRoot + Path.DirectorySeparatorChar;
+        return SamePath(fullPath, root) || Canonical(fullPath).StartsWith(rootWithSeparator, PathComparison);
     }
 
     private static CakeException Unsafe(string entryName, string reason) =>
