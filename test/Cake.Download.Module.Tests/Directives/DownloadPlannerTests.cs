@@ -100,17 +100,17 @@ public sealed class DownloadPlannerTests
     }
 
     [Theory]
-    [InlineData("https://example.com/t.zip", ArchiveFormat.Zip)]
-    [InlineData("https://example.com/t.ZIP", ArchiveFormat.Zip)]
-    [InlineData("https://example.com/t.tar.gz", ArchiveFormat.TarGz)]
-    [InlineData("https://example.com/t.tgz", ArchiveFormat.TarGz)]
-    [InlineData("https://example.com/t.tar", ArchiveFormat.Tar)]
-    [InlineData("https://example.com/t.exe", ArchiveFormat.File)]
-    [InlineData("https://example.com/t", ArchiveFormat.File)]
-    [InlineData("https://example.com/t.tar.xz", ArchiveFormat.File)]
-    public void Create_Detects_The_Format_From_The_Url_Path(string url, ArchiveFormat format)
+    [InlineData("https://example.com/t.zip", "zip")]
+    [InlineData("https://example.com/t.ZIP", "zip")]
+    [InlineData("https://example.com/t.tar.gz", "tar.gz")]
+    [InlineData("https://example.com/t.tgz", "tar.gz")]
+    [InlineData("https://example.com/t.tar", "tar")]
+    [InlineData("https://example.com/t.exe", "file")]
+    [InlineData("https://example.com/t", "file")]
+    [InlineData("https://example.com/t.tar.xz", "file")]
+    public void Create_Detects_The_Format_From_The_Url_Path(string url, string format)
     {
-        Assert.Equal(format, Plan("download:" + url + "?package=t&version=1&sha256=skip", "linux-x64").Format);
+        Assert.Equal(ArchiveFormats.FromName(format), Plan("download:" + url + "?package=t&version=1&sha256=skip", "linux-x64").Format);
     }
 
     [Fact]

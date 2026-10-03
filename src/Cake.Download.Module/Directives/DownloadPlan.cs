@@ -2,29 +2,11 @@ using Cake.Download.Module.Platforms;
 
 namespace Cake.Download.Module.Directives;
 
-/// <summary>
-/// The format of a downloaded archive.
-/// </summary>
-public enum ArchiveFormat
+internal enum ArchiveFormat
 {
-    /// <summary>
-    /// A raw file without compression.
-    /// </summary>
     File,
-
-    /// <summary>
-    /// A ZIP archive.
-    /// </summary>
     Zip,
-
-    /// <summary>
-    /// A TAR archive.
-    /// </summary>
     Tar,
-
-    /// <summary>
-    /// A TAR archive compressed with gzip.
-    /// </summary>
     TarGz,
 }
 
