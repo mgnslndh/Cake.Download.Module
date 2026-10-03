@@ -50,6 +50,12 @@ internal static class DownloadPlanner
                 throw new CakeException(
                     $"'filename' must start with a letter or digit and contain only letters, digits, '.', '_', '+' and '-' (was '{fileName}'). Directive: {directive.OriginalString}");
             }
+
+            if (DirectiveParser.IsReservedDeviceName(fileName))
+            {
+                throw new CakeException(
+                    $"'filename' must not be a reserved Windows device name (was '{fileName}'). Directive: {directive.OriginalString}");
+            }
         }
         else if (directive.FileName is not null)
         {

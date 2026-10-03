@@ -20,3 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `filename` values that would place the download outside the install folder (e.g. `C:evil.exe` on Windows) are now rejected.
+  `filename` must now start with a letter or digit and contain only letters, digits, `.`, `_`, `+` and `-`, so names with
+  spaces or colons are rejected. Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM0`-`COM9`, `LPT0`-`LPT9`,
+  with or without an extension) are rejected for `filename` and `package`.

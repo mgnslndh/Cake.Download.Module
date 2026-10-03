@@ -135,6 +135,7 @@ public sealed class DownloadPlannerTests
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=..%7Bexe%7D", "..")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=%7Bexe%7D", "")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=-x", "-x")]
+    [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=jq%0A", "jq\n")]
     public void Create_Rejects_Unsafe_Expanded_Filenames(string directive, string expanded)
     {
         var exception = Assert.Throws<CakeException>(() => Plan(directive, "linux-x64"));
@@ -142,6 +143,30 @@ public sealed class DownloadPlannerTests
         Assert.StartsWith(
             $"'filename' must start with a letter or digit and contain only letters, digits, '.', '_', '+' and '-' (was '{expanded}'). Directive: {directive}",
             exception.Message);
+    }
+
+    [Theory]
+    [InlineData("nul", "nul")]
+    [InlineData("CON.exe", "CON.exe")]
+    [InlineData("com1.tar.gz", "com1.tar.gz")]
+    [InlineData("lpt9", "lpt9")]
+    public void Create_Rejects_Reserved_Device_Names_As_Filenames(string filename, string expanded)
+    {
+        var directive = "download:https://example.com/t?package=t&version=1&sha256=skip&filename=" + filename;
+
+        var exception = Assert.Throws<CakeException>(() => Plan(directive, "linux-x64"));
+
+        Assert.StartsWith(
+            $"'filename' must not be a reserved Windows device name (was '{expanded}'). Directive: {directive}",
+            exception.Message);
+    }
+
+    [Fact]
+    public void Create_Accepts_A_Filename_That_Only_Resembles_A_Reserved_Device_Name()
+    {
+        var plan = Plan("download:https://example.com/t?package=t&version=1&sha256=skip&filename=console.exe", "linux-x64");
+
+        Assert.Equal("console.exe", plan.FileName);
     }
 
     [Fact]

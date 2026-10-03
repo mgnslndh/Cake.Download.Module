@@ -44,6 +44,11 @@ internal static partial class DirectiveParser
             throw Fail($"'package' must start with a letter or digit and may only contain letters, digits, '.', '_' and '-' (was '{package}').");
         }
 
+        if (IsReservedDeviceName(package))
+        {
+            throw Fail($"'package' must not be a reserved Windows device name (was '{package}').");
+        }
+
         var version = Single("version") ?? throw Fail("the 'version' parameter is required.");
         if (string.Equals(version, "latest", StringComparison.OrdinalIgnoreCase))
         {
@@ -261,17 +266,23 @@ internal static partial class DirectiveParser
     private static string Hex(string value, string problem, Func<string, CakeException> fail) =>
         Sha256Pattern().IsMatch(value) ? value.ToLowerInvariant() : throw fail(problem);
 
-    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]*$")]
+    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._-]*\z")]
     private static partial Regex PackagePattern();
 
-    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._+-]*$")]
+    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._+-]*\z")]
     private static partial Regex VersionPattern();
 
-    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._+-]*$")]
+    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._+-]*\z")]
     private static partial Regex FileNamePattern();
 
     internal static bool IsValidFileName(string fileName) => FileNamePattern().IsMatch(fileName);
 
-    [GeneratedRegex("^[0-9a-fA-F]{64}$")]
+    [GeneratedRegex(@"^(CON|PRN|AUX|NUL|COM[0-9\u00B9\u00B2\u00B3]|LPT[0-9\u00B9\u00B2\u00B3])(\.[\s\S]*)?\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ReservedDeviceNamePattern();
+
+    /// <summary>True when the part before the first dot is a Windows reserved device name such as <c>NUL</c> or <c>COM1</c>.</summary>
+    internal static bool IsReservedDeviceName(string name) => ReservedDeviceNamePattern().IsMatch(name);
+
+    [GeneratedRegex(@"^[0-9a-fA-F]{64}\z")]
     private static partial Regex Sha256Pattern();
 }

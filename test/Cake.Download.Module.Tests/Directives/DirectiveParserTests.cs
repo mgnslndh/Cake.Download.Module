@@ -47,6 +47,10 @@ public sealed class DirectiveParserTests
     [InlineData("download:https://example.com/t.zip?package=t&version=-1&sha256=skip", "'version' must start with a letter or digit and may only contain letters, digits, '.', '_', '+' and '-' (was '-1').")]
     [InlineData("download:https://example.com/t.zip?package=t&version=1%2F2&sha256=skip", "'version' must start with a letter or digit and may only contain letters, digits, '.', '_', '+' and '-' (was '1/2').")]
     [InlineData("download:https://example.com/t.zip?package=a%2Fb&version=1&sha256=skip", "'package' must start with a letter or digit and may only contain letters, digits, '.', '_' and '-' (was 'a/b').")]
+    [InlineData("download:https://example.com/t.zip?package=jq%0A&version=1&sha256=skip", "'package' must start with a letter or digit and may only contain letters, digits, '.', '_' and '-' (was 'jq\n').")]
+    [InlineData("download:https://example.com/t.zip?package=t&version=1.0%0A&sha256=skip", "'version' must start with a letter or digit and may only contain letters, digits, '.', '_', '+' and '-' (was '1.0\n').")]
+    [InlineData("download:https://example.com/t.zip?package=nul&version=1&sha256=skip", "'package' must not be a reserved Windows device name (was 'nul').")]
+    [InlineData("download:https://example.com/t.zip?package=Aux&version=1&sha256=skip", "'package' must not be a reserved Windows device name (was 'Aux').")]
     [InlineData("download:https://example.com/t.zip?package=t&version=1&sha256=skip&token=x", "unknown parameter 'token'.")]
     [InlineData("download:https://example.com/t.zip?package=t&version=1&sha256=skip&dialect=go&dialect=rust", "parameter 'dialect' may only be specified once.")]
     [InlineData("download:https://example.com/t.zip?package=t&version=1&sha256=", "parameter 'sha256' needs a value.")]
@@ -121,6 +125,30 @@ public sealed class DirectiveParserTests
         Assert.Equal(["**/*.txt"], directive.Exclude);
 
         Assert.Equal("tool.jar", Parse(Base + "&sha256=skip&filename=tool.jar").FileName);
+    }
+
+    [Fact]
+    public void Parse_Accepts_A_Package_That_Only_Resembles_A_Reserved_Device_Name()
+    {
+        Assert.Equal("auxtool", Parse("download:https://example.com/t.zip?package=auxtool&version=1&sha256=skip").Package);
+    }
+
+    [Theory]
+    [InlineData("NUL", true)]
+    [InlineData("nul.txt", true)]
+    [InlineData("con.tar.gz", true)]
+    [InlineData("Com1.exe", true)]
+    [InlineData("COM0", true)]
+    [InlineData("lpt9", true)]
+    [InlineData("COM\u00B9", true)]
+    [InlineData("lpt\u00B2.txt", true)]
+    [InlineData("console.exe", false)]
+    [InlineData("com10", false)]
+    [InlineData("auxtool", false)]
+    [InlineData("nul\n", false)]
+    public void IsReservedDeviceName_Matches_The_Stem_Before_The_First_Dot(string name, bool expected)
+    {
+        Assert.Equal(expected, DirectiveParser.IsReservedDeviceName(name));
     }
 
     [Fact]
