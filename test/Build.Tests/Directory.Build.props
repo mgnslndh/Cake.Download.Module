@@ -1,0 +1,3 @@
+<!-- Stops the import of test/Directory.Build.props: the build tests use neither StyleCop nor the module's settings. -->
+<Project>
+</Project>
