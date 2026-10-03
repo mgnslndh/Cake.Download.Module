@@ -55,6 +55,8 @@ public sealed class DirectiveParserTests
     [InlineData("download:?package=t&version=1&sha256=skip", "no download URL. Put the URL after 'download:' or use 'url=' or 'url.<rid>='.")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&format=7z", "unknown format '7z'. Supported formats: file, zip, tar, tar.gz.")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=bin%2Ft", "'filename' must be a file name, not a path (was 'bin/t').")]
+    [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=C%3Aevil.exe", "'filename' must be a file name, not a path (was 'C:evil.exe').")]
+    [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=jq%3Astream", "'filename' must be a file name, not a path (was 'jq:stream').")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&triple.linux-x64=x", "'triple.<rid>' parameters require 'dialect=rust'.")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&url.freebsd-x64=https%3A%2F%2Fexample.com%2Ft", "'url.freebsd-x64' does not name a supported platform. Supported platforms: win-x64, win-x86, win-arm64, linux-x64, linux-arm64, linux-arm, osx-x64, osx-arm64.")]
     [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&os.macos=x", "'os.macos' is not a valid override for dialect 'go'. Use one of: os.windows, os.linux, os.darwin.")]

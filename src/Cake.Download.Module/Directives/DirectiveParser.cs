@@ -102,7 +102,7 @@ internal static partial class DirectiveParser
         }
 
         var fileName = Single("filename");
-        if (fileName is not null && (fileName.IndexOfAny(['/', '\\']) >= 0 || fileName is "." or ".."))
+        if (fileName is not null && (fileName.IndexOfAny(['/', '\\', ':']) >= 0 || fileName.Length == 0 || fileName.All(c => c == '.')))
         {
             throw Fail($"'filename' must be a file name, not a path (was '{fileName}').");
         }
@@ -266,6 +266,11 @@ internal static partial class DirectiveParser
 
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._+-]*$")]
     private static partial Regex VersionPattern();
+
+    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._+-]*$")]
+    private static partial Regex FileNamePattern();
+
+    internal static bool IsValidFileName(string fileName) => FileNamePattern().IsMatch(fileName);
 
     [GeneratedRegex("^[0-9a-fA-F]{64}$")]
     private static partial Regex Sha256Pattern();

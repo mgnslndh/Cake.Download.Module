@@ -187,6 +187,15 @@ public sealed class DownloadPackageInstaller : IPackageInstaller
             if (plan.Format == ArchiveFormat.File)
             {
                 var target = Path.Combine(staging.ContentDirectory, plan.FileName!);
+                var comparison = OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+                var targetDirectory = Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(Path.GetFullPath(target)) ?? string.Empty);
+                var contentDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(staging.ContentDirectory));
+                if (!string.Equals(targetDirectory, contentDirectory, comparison))
+                {
+                    throw new CakeException(
+                        $"The file name '{plan.FileName}' for {plan.Package} {plan.Version} would place the download outside the install folder.");
+                }
+
                 File.Move(assetPath, target);
                 FileSelector.MakeExecutable(target);
             }

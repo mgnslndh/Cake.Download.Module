@@ -45,9 +45,10 @@ internal static class DownloadPlanner
             fileName = directive.FileName is null
                 ? directive.Package + platform.Exe
                 : PlaceholderExpander.Expand(directive.FileName, placeholders, "'filename'");
-            if (fileName.IndexOfAny(['/', '\\']) >= 0)
+            if (!DirectiveParser.IsValidFileName(fileName))
             {
-                throw new CakeException($"'filename' must be a file name, not a path (was '{fileName}'). Directive: {directive.OriginalString}");
+                throw new CakeException(
+                    $"'filename' must start with a letter or digit and contain only letters, digits, '.', '_', '+' and '-' (was '{fileName}'). Directive: {directive.OriginalString}");
             }
         }
         else if (directive.FileName is not null)

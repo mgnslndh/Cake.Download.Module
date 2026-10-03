@@ -131,6 +131,19 @@ public sealed class DownloadPlannerTests
         Assert.Equal(["**/test-2.exe"], archive.Exclude);
     }
 
+    [Theory]
+    [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=..%7Bexe%7D", "..")]
+    [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=%7Bexe%7D", "")]
+    [InlineData("download:https://example.com/t?package=t&version=1&sha256=skip&filename=-x", "-x")]
+    public void Create_Rejects_Unsafe_Expanded_Filenames(string directive, string expanded)
+    {
+        var exception = Assert.Throws<CakeException>(() => Plan(directive, "linux-x64"));
+
+        Assert.StartsWith(
+            $"'filename' must start with a letter or digit and contain only letters, digits, '.', '_', '+' and '-' (was '{expanded}'). Directive: {directive}",
+            exception.Message);
+    }
+
     [Fact]
     public void Create_Rejects_A_Filename_For_Archives()
     {

@@ -16,3 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `rust` dialects and per-directive overrides.
 - `package` and `version` must start with a letter or digit, so values such as `.` or `..` are rejected.
 - Idempotent installs into `<tools>/<package>.<version>/`: unchanged directives make no network requests.
+
+### Fixed
+
+- `filename` values that would place the download outside the install folder (e.g. `C:evil.exe` on Windows) are now rejected.
