@@ -152,6 +152,12 @@ public sealed class ArchiveExtractorTests : IDisposable
     [Fact]
     public void Extract_Compares_Link_Paths_Case_Insensitively()
     {
+        if (OperatingSystem.IsLinux())
+        {
+            Assert.Skip("Case-insensitive file systems only.");
+            return;
+        }
+
         var exception = Assert.Throws<CakeException>(() => Extract(
             ArchiveFormat.TarGz,
             ArchiveEntrySpec.Symlink("d1/d2/s", "../.."),
