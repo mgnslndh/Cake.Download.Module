@@ -143,6 +143,7 @@ public sealed class DownloadPlannerTests
     [Theory]
     [InlineData("download:http://example.com/t.zip?package=t&version=1&sha256=skip", "The download URL 'http://example.com/t.zip' for 't' is not an absolute https URL.")]
     [InlineData("download:https://example.com/t.zip?package=t&version=1&checksums=http%3A%2F%2Fexample.com%2Fs.txt&checksums_sha256=" + Hash, "The checksums URL 'http://example.com/s.txt' for 't' is not an absolute https URL.")]
+    [InlineData("download:https://example.com/t.zip?package=t&version=1&checksums=https%3A%2F%2F%5B&checksums_sha256=" + Hash, "The checksums URL 'https://[' for 't' is not an absolute https URL.")]
     public void Create_Rejects_Non_Https_Urls(string directive, string message)
     {
         var exception = Assert.Throws<CakeException>(() => Plan(directive, "linux-x64"));

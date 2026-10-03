@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -12,8 +13,7 @@ namespace Cake.Download.Module.Http;
 /// </summary>
 internal sealed class HttpDownloader
 {
-    private static readonly string UserAgent =
-        $"Cake.Download.Module/{typeof(HttpDownloader).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"}";
+    private static readonly string UserAgent = $"Cake.Download.Module/{GetVersion()}";
 
     private readonly HttpClient _client;
     private readonly ICakeLog _log;
@@ -29,6 +29,15 @@ internal sealed class HttpDownloader
 
     public DownloadResult Download(Uri url, string destinationPath, long? maxBytes = null) =>
         DownloadAsync(url, destinationPath, maxBytes).GetAwaiter().GetResult();
+
+    private static string GetVersion()
+    {
+        var informational = typeof(HttpDownloader).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var plus = informational?.IndexOf('+', StringComparison.Ordinal) ?? -1;
+        var version = plus >= 0 ? informational![..plus] : informational;
+        return string.IsNullOrWhiteSpace(version) ? "0.0.0" : version;
+    }
 
     private static bool IsRedirect(HttpStatusCode status) => (int)status is 301 or 302 or 303 or 307 or 308;
 

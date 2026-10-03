@@ -63,6 +63,19 @@ public sealed class DownloadPackageInstallerTests : IDisposable
     }
 
     [Fact]
+    public void Install_Wraps_An_Extraction_Failure_In_A_CakeException()
+    {
+        const string NotAnArchive = "this is not a zip file";
+        _handler.Respond("https://example.com/bad.zip", FakeHttpHandler.Ok(NotAnArchive));
+
+        var exception = Assert.Throws<CakeException>(
+            () => Install("download:https://example.com/bad.zip?package=jq&version=1.8.2&sha256=" + TestHashes.Sha256(NotAnArchive)));
+
+        Assert.StartsWith("Could not extract jq 1.8.2 from https://example.com/bad.zip as zip:", exception.Message);
+        Assert.NotNull(exception.InnerException);
+    }
+
+    [Fact]
     public void Install_Extracts_An_Archive_And_Registers_The_Default_Include()
     {
         var archive = TestArchives.Tar(

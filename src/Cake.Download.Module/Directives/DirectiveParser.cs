@@ -41,7 +41,7 @@ internal static partial class DirectiveParser
         var package = Single("package") ?? throw Fail("the 'package' parameter is required.");
         if (!PackagePattern().IsMatch(package))
         {
-            throw Fail($"'package' may only contain letters, digits, '.', '_' and '-' (was '{package}').");
+            throw Fail($"'package' must start with a letter or digit and may only contain letters, digits, '.', '_' and '-' (was '{package}').");
         }
 
         var version = Single("version") ?? throw Fail("the 'version' parameter is required.");
@@ -52,7 +52,7 @@ internal static partial class DirectiveParser
 
         if (!VersionPattern().IsMatch(version))
         {
-            throw Fail($"'version' may only contain letters, digits, '.', '_', '+' and '-' (was '{version}').");
+            throw Fail($"'version' must start with a letter or digit and may only contain letters, digits, '.', '_', '+' and '-' (was '{version}').");
         }
 
         var dialectName = Single("dialect") ?? PlatformDialects.Go.Name;
@@ -261,10 +261,10 @@ internal static partial class DirectiveParser
     private static string Hex(string value, string problem, Func<string, CakeException> fail) =>
         Sha256Pattern().IsMatch(value) ? value.ToLowerInvariant() : throw fail(problem);
 
-    [GeneratedRegex("^[A-Za-z0-9._-]+$")]
+    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]*$")]
     private static partial Regex PackagePattern();
 
-    [GeneratedRegex("^[A-Za-z0-9._+-]+$")]
+    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._+-]*$")]
     private static partial Regex VersionPattern();
 
     [GeneratedRegex("^[0-9a-fA-F]{64}$")]

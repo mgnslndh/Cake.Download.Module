@@ -57,6 +57,11 @@ download:<url-template>?package=<name>&version=<version>[&<parameter>=<value>]*
 Exactly one integrity option is required. Leave it out once, and the error message contains the exact parameter to
 paste, with the hash of what was downloaded.
 
+Parameter values are percent-decoded, so a value containing `=`, `&`, `?` or `#` (notably `url=`) must be
+percent-encoded; otherwise Cake reports "Could not parse query string.". `package` and `version` must start with a
+letter or digit. Placeholders are expanded in the URL, `url`, `url.<rid>`, `checksums`, `filename`, `include` and
+`exclude`. Validation is strict: unknown parameters are errors.
+
 ### Placeholders and dialects
 
 | Placeholder | go | dotnet | rust |
@@ -68,6 +73,9 @@ paste, with the hash of what was downloaded.
 `{version}`, `{rid}` (`win-x64`, `linux-arm64`, `osx-arm64`, …), `{exe}` (`.exe` on Windows) and `{archive}` (`zip` on
 Windows, `tar.gz` elsewhere) work in every dialect. Supported platforms: `win-x64`, `win-x86`, `win-arm64`,
 `linux-x64`, `linux-arm64`, `linux-arm`, `osx-x64`, `osx-arm64`.
+
+In the rust dialect, `{triple}` on Linux defaults to musl (`x86_64-unknown-linux-musl`); override it per platform
+with `triple.<rid>=`.
 
 ### Examples
 
@@ -91,7 +99,8 @@ make no network requests. Different versions are installed side by side and neve
 ## Limitations
 
 Only public HTTPS downloads: no authentication, private repositories, mirrors or signature verification. Archive
-formats are zip, tar and tar.gz.
+formats are zip, tar and tar.gz. Authenticated (NTLM) proxies are not supported. On Windows, symbolic links to
+directories inside tar archives are not materialized.
 
 ## License
 

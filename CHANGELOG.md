@@ -14,4 +14,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registers the files matched by `include`/`exclude` with Cake's tool locator.
 - Platform placeholders `{version}`, `{os}`, `{arch}`, `{rid}`, `{exe}`, `{archive}` and `{triple}` with `go`, `dotnet`
   and `rust` dialects and per-directive overrides.
+- `package` and `version` must start with a letter or digit, so values such as `.` or `..` are rejected.
 - Idempotent installs into `<tools>/<package>.<version>/`: unchanged directives make no network requests.

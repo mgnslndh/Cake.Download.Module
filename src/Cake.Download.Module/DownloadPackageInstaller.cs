@@ -182,15 +182,24 @@ public sealed class DownloadPackageInstaller : IPackageInstaller
             _log.Verbose("Verified SHA-256 {0} of {1}.", download.Sha256, plan.AssetName);
         }
 
-        if (plan.Format == ArchiveFormat.File)
+        try
         {
-            var target = Path.Combine(staging.ContentDirectory, plan.FileName!);
-            File.Move(assetPath, target);
-            FileSelector.MakeExecutable(target);
+            if (plan.Format == ArchiveFormat.File)
+            {
+                var target = Path.Combine(staging.ContentDirectory, plan.FileName!);
+                File.Move(assetPath, target);
+                FileSelector.MakeExecutable(target);
+            }
+            else
+            {
+                ArchiveExtractor.Extract(assetPath, plan.Format, staging.ContentDirectory);
+            }
         }
-        else
+        catch (Exception exception) when (exception is InvalidDataException or IOException)
         {
-            ArchiveExtractor.Extract(assetPath, plan.Format, staging.ContentDirectory);
+            throw new CakeException(
+                $"Could not extract {plan.Package} {plan.Version} from {plan.Url.AbsoluteUri} as {ArchiveFormats.ToName(plan.Format)}: {exception.Message}",
+                exception);
         }
 
         store.Publish(plan, staging, store.CreateMarker(plan, download.Sha256), replaceCurrent);

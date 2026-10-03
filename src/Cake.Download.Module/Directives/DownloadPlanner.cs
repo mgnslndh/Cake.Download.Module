@@ -92,11 +92,14 @@ internal static class DownloadPlanner
                 ? new PinnedSha256(hash, $"sha256.{rid}")
                 : new MissingIntegrityPlan($"sha256.{rid}"),
             ChecksumsFileIntegrity checksums => new ChecksumsFilePlan(
-                ParseHttps(new Uri(url, PlaceholderExpander.Expand(checksums.Reference, placeholders, "'checksums'")).AbsoluteUri, "checksums URL", directive),
+                ParseHttps(ResolveReference(url, PlaceholderExpander.Expand(checksums.Reference, placeholders, "'checksums'")), "checksums URL", directive),
                 checksums.Sha256),
             SkipIntegrity => new SkippedIntegrity(),
             _ => new MissingIntegrityPlan(platformSpecific ? $"sha256.{rid}" : "sha256"),
         };
+
+    private static string ResolveReference(Uri baseUri, string reference) =>
+        Uri.TryCreate(baseUri, reference, out var resolved) ? resolved.AbsoluteUri : reference;
 
     private static Uri ParseHttps(string value, string what, DownloadDirective directive)
     {
