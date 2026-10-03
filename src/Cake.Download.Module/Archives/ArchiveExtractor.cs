@@ -57,7 +57,7 @@ internal static class ArchiveExtractor
 
     private static void ExtractTar(string archivePath, string root, bool gzip)
     {
-        var links = new List<(string Path, string LinkName, string Target, bool Symbolic)>();
+        var links = new List<(string Name, string Path, string LinkName, string Target, bool Symbolic)>();
         using (var file = File.OpenRead(archivePath))
         using (var stream = gzip ? new GZipStream(file, CompressionMode.Decompress) : (Stream)file)
         using (var reader = new TarReader(stream))
@@ -89,10 +89,10 @@ internal static class ArchiveExtractor
                             throw Unsafe(entry.Name, $"its link target '{entry.LinkName}' is outside the target folder");
                         }
 
-                        links.Add((link, entry.LinkName, linkTarget, true));
+                        links.Add((entry.Name, link, entry.LinkName, linkTarget, true));
                         break;
                     case TarEntryType.HardLink:
-                        links.Add((ResolveInside(root, entry.Name), entry.LinkName, ResolveInside(root, entry.LinkName), false));
+                        links.Add((entry.Name, ResolveInside(root, entry.Name), entry.LinkName, ResolveInside(root, entry.LinkName), false));
                         break;
                     default:
                         // PAX/GNU metadata entries are consumed by TarReader; devices and FIFOs are skipped.
@@ -101,13 +101,45 @@ internal static class ArchiveExtractor
             }
         }
 
-        foreach (var (path, linkName, target, symbolic) in links)
+        var symlinkPaths = links.Where(l => l.Symbolic).Select(l => l.Path).ToList();
+        foreach (var (name, path, linkName, target, symbolic) in links)
         {
-            CreateLink(path, linkName, target, symbolic);
+            var baseDirectory = symbolic ? Path.GetDirectoryName(path)! : root;
+            if (symlinkPaths.Any(symlink => IsInside(symlink, target)) || WalksThrough(baseDirectory, linkName, symlinkPaths))
+            {
+                throw Unsafe(name, $"its link target '{linkName}' passes through another link");
+            }
+        }
+
+        foreach (var (name, path, linkName, target, symbolic) in links)
+        {
+            CreateLink(name, path, linkName, target, symbolic);
         }
     }
 
-    private static void CreateLink(string path, string linkName, string target, bool symbolic)
+    private static bool WalksThrough(string baseDirectory, string linkName, List<string> symlinkPaths)
+    {
+        // Walk the raw segments one by one, so "link/.." is seen passing through "link" before it is normalized away.
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var current = baseDirectory;
+        foreach (var segment in linkName.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (segment == ".")
+            {
+                continue;
+            }
+
+            current = segment == ".." ? Path.GetDirectoryName(current) ?? current : Path.Combine(current, segment);
+            if (symlinkPaths.Any(symlink => string.Equals(symlink, current, comparison)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void CreateLink(string name, string path, string linkName, string target, bool symbolic)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         if (File.Exists(path))
@@ -125,6 +157,10 @@ internal static class ArchiveExtractor
         if (File.Exists(target))
         {
             File.Copy(target, path, overwrite: true);
+        }
+        else if (!symbolic && !Directory.Exists(target))
+        {
+            throw Unsafe(name, $"its link target '{linkName}' does not exist in the archive");
         }
     }
 
