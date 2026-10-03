@@ -200,6 +200,9 @@ public sealed class DirectiveParserTests
     [InlineData("&sha256=abc", "'sha256' must be a SHA-256 hash of 64 hexadecimal characters, or 'skip'.")]
     [InlineData("&sha256.win-x64=abc", "'sha256.win-x64' must be a SHA-256 hash of 64 hexadecimal characters.")]
     [InlineData("&checksums=s.txt&checksums_sha256=xyz", "'checksums_sha256' must be a SHA-256 hash of 64 hexadecimal characters.")]
+    [InlineData("&sha256=" + Hash + "%0A", "'sha256' must be a SHA-256 hash of 64 hexadecimal characters, or 'skip'.")]
+    [InlineData("&sha256.linux-x64=" + Hash + "%0A", "'sha256.linux-x64' must be a SHA-256 hash of 64 hexadecimal characters.")]
+    [InlineData("&checksums=sums.txt&checksums_sha256=" + Hash + "%0A", "'checksums_sha256' must be a SHA-256 hash of 64 hexadecimal characters.")]
     public void Parse_Rejects_Invalid_Integrity_Values(string query, string problem)
     {
         var exception = Assert.Throws<CakeException>(() => Parse(Base + query));

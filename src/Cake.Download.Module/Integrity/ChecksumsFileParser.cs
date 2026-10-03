@@ -51,9 +51,9 @@ internal static partial class ChecksumsFileParser
         return result;
     }
 
-    [GeneratedRegex(@"^(?<hash>[0-9a-fA-F]{64})\s+\*?(?<name>\S.*)$")]
+    [GeneratedRegex(@"^(?<hash>[0-9a-fA-F]{64})\s+\*?(?<name>\S.*)\z")]
     private static partial Regex Gnu();
 
-    [GeneratedRegex(@"^SHA256 ?\((?<name>.+)\) ?= ?(?<hash>[0-9a-fA-F]{64})$")]
+    [GeneratedRegex(@"^SHA256 ?\((?<name>.+)\) ?= ?(?<hash>[0-9a-fA-F]{64})\z")]
     private static partial Regex Bsd();
 }

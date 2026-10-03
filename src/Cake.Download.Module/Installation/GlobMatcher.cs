@@ -29,7 +29,7 @@ internal sealed class GlobMatcher
 
         Pattern = pattern;
         var options = RegexOptions.CultureInvariant | (ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
-        _regex = new Regex("^" + ToRegex(normalized) + "$", options);
+        _regex = new Regex("^" + ToRegex(normalized) + @"\z", options);
     }
 
     public string Pattern { get; }

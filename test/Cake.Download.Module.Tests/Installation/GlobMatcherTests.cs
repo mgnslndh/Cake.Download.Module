@@ -10,6 +10,7 @@ public sealed class GlobMatcherTests
     [InlineData("**/tool", "a/b/tool", true)]
     [InlineData("**/tool", "a/tool.txt", false)]
     [InlineData("**/tool", "a/xtool", false)]
+    [InlineData("**/tool", "tool\n", false)]
     [InlineData("bin/*", "bin/x", true)]
     [InlineData("bin/*", "bin/a/x", false)]
     [InlineData("bin/**", "bin/a/x", true)]
