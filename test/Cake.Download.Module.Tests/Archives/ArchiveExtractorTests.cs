@@ -116,6 +116,40 @@ public sealed class ArchiveExtractorTests : IDisposable
     }
 
     [Fact]
+    public void Extract_Rejects_A_Link_Whose_Own_Path_Passes_Through_A_Symlink()
+    {
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormat.TarGz,
+            ArchiveEntrySpec.Symlink("d1/d2/s", "../.."),
+            ArchiveEntrySpec.Symlink("d1/d2/s/foo", "../")));
+
+        Assert.Contains("'d1/d2/s/foo': its path passes through the link 'd1/d2/s'", exception.Message);
+    }
+
+    [Fact]
+    public void Extract_Rejects_A_File_Whose_Path_Passes_Through_A_Symlink()
+    {
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormat.TarGz,
+            new ArchiveEntrySpec("s/f", "x"),
+            ArchiveEntrySpec.Symlink("s", "bin"),
+            new ArchiveEntrySpec("bin/x", "x")));
+
+        Assert.Contains("'s/f': its path passes through the link 's'", exception.Message);
+    }
+
+    [Fact]
+    public void Extract_Rejects_A_Hard_Link_To_A_Directory()
+    {
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormat.TarGz,
+            ArchiveEntrySpec.Directory("bin"),
+            ArchiveEntrySpec.Hardlink("h", "bin")));
+
+        Assert.Contains("'h': its link target 'bin' does not exist in the archive.", exception.Message);
+    }
+
+    [Fact]
     public void Extract_Rejects_Raw_Files()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ArchiveExtractor.Extract(_directory.Combine("x"), ArchiveFormat.File, _directory.Combine("out")));

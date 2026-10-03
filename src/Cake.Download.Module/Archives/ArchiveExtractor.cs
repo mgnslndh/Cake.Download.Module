@@ -58,6 +58,7 @@ internal static class ArchiveExtractor
     private static void ExtractTar(string archivePath, string root, bool gzip)
     {
         var links = new List<(string Name, string Path, string LinkName, string Target, bool Symbolic)>();
+        var entryPaths = new List<(string Name, string Path)>();
         using (var file = File.OpenRead(archivePath))
         using (var stream = gzip ? new GZipStream(file, CompressionMode.Decompress) : (Stream)file)
         using (var reader = new TarReader(stream))
@@ -67,12 +68,15 @@ internal static class ArchiveExtractor
                 switch (entry.EntryType)
                 {
                     case TarEntryType.Directory:
-                        Directory.CreateDirectory(ResolveInside(root, entry.Name));
+                        var directory = ResolveInside(root, entry.Name);
+                        entryPaths.Add((entry.Name, directory));
+                        Directory.CreateDirectory(directory);
                         break;
                     case TarEntryType.RegularFile:
                     case TarEntryType.V7RegularFile:
                     case TarEntryType.ContiguousFile:
                         var target = ResolveInside(root, entry.Name);
+                        entryPaths.Add((entry.Name, target));
                         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                         entry.ExtractToFile(target, overwrite: true);
                         if (!OperatingSystem.IsWindows())
@@ -89,10 +93,13 @@ internal static class ArchiveExtractor
                             throw Unsafe(entry.Name, $"its link target '{entry.LinkName}' is outside the target folder");
                         }
 
+                        entryPaths.Add((entry.Name, link));
                         links.Add((entry.Name, link, entry.LinkName, linkTarget, true));
                         break;
                     case TarEntryType.HardLink:
-                        links.Add((entry.Name, ResolveInside(root, entry.Name), entry.LinkName, ResolveInside(root, entry.LinkName), false));
+                        var hardLink = ResolveInside(root, entry.Name);
+                        entryPaths.Add((entry.Name, hardLink));
+                        links.Add((entry.Name, hardLink, entry.LinkName, ResolveInside(root, entry.LinkName), false));
                         break;
                     default:
                         // PAX/GNU metadata entries are consumed by TarReader; devices and FIFOs are skipped.
@@ -102,6 +109,18 @@ internal static class ArchiveExtractor
         }
 
         var symlinkPaths = links.Where(l => l.Symbolic).Select(l => l.Path).ToList();
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        foreach (var (name, path) in entryPaths)
+        {
+            foreach (var symlink in links.Where(l => l.Symbolic))
+            {
+                if (!string.Equals(symlink.Path, path, comparison) && IsInside(symlink.Path, path))
+                {
+                    throw Unsafe(name, $"its path passes through the link '{symlink.Name}'");
+                }
+            }
+        }
+
         foreach (var (name, path, linkName, target, symbolic) in links)
         {
             var baseDirectory = symbolic ? Path.GetDirectoryName(path)! : root;
@@ -158,7 +177,7 @@ internal static class ArchiveExtractor
         {
             File.Copy(target, path, overwrite: true);
         }
-        else if (!symbolic && !Directory.Exists(target))
+        else if (!symbolic)
         {
             throw Unsafe(name, $"its link target '{linkName}' does not exist in the archive");
         }
