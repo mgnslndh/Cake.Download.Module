@@ -1,0 +1,158 @@
+using System.Formats.Tar;
+using System.IO.Compression;
+using Cake.Core;
+using Cake.Download.Module.Directives;
+
+namespace Cake.Download.Module.Archives;
+
+/// <summary>
+/// Extracts zip and tar archives verbatim, refusing any entry or link that would land outside the destination and
+/// keeping Unix permission bits.
+/// </summary>
+internal static class ArchiveExtractor
+{
+    private const int PermissionBits = 0x1FF;
+
+    public static void Extract(string archivePath, ArchiveFormat format, string destination)
+    {
+        if (format == ArchiveFormat.File)
+        {
+            throw new ArgumentOutOfRangeException(nameof(format), format, "Only archives can be extracted.");
+        }
+
+        Directory.CreateDirectory(destination);
+        var root = Path.GetFullPath(destination);
+        if (format == ArchiveFormat.Zip)
+        {
+            ExtractZip(archivePath, root);
+        }
+        else
+        {
+            ExtractTar(archivePath, root, gzip: format == ArchiveFormat.TarGz);
+        }
+    }
+
+    private static void ExtractZip(string archivePath, string root)
+    {
+        using var archive = ZipFile.OpenRead(archivePath);
+        foreach (var entry in archive.Entries)
+        {
+            var target = ResolveInside(root, entry.FullName);
+            if (entry.FullName.EndsWith('/') || entry.FullName.EndsWith('\\'))
+            {
+                Directory.CreateDirectory(target);
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            entry.ExtractToFile(target, overwrite: true);
+
+            var mode = (entry.ExternalAttributes >> 16) & PermissionBits;
+            if (!OperatingSystem.IsWindows() && mode != 0)
+            {
+                File.SetUnixFileMode(target, (UnixFileMode)mode);
+            }
+        }
+    }
+
+    private static void ExtractTar(string archivePath, string root, bool gzip)
+    {
+        var links = new List<(string Path, string LinkName, string Target, bool Symbolic)>();
+        using (var file = File.OpenRead(archivePath))
+        using (var stream = gzip ? new GZipStream(file, CompressionMode.Decompress) : (Stream)file)
+        using (var reader = new TarReader(stream))
+        {
+            while (reader.GetNextEntry() is { } entry)
+            {
+                switch (entry.EntryType)
+                {
+                    case TarEntryType.Directory:
+                        Directory.CreateDirectory(ResolveInside(root, entry.Name));
+                        break;
+                    case TarEntryType.RegularFile:
+                    case TarEntryType.V7RegularFile:
+                    case TarEntryType.ContiguousFile:
+                        var target = ResolveInside(root, entry.Name);
+                        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                        entry.ExtractToFile(target, overwrite: true);
+                        if (!OperatingSystem.IsWindows())
+                        {
+                            File.SetUnixFileMode(target, (UnixFileMode)((int)entry.Mode & PermissionBits));
+                        }
+
+                        break;
+                    case TarEntryType.SymbolicLink:
+                        var link = ResolveInside(root, entry.Name);
+                        var linkTarget = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(link)!, entry.LinkName));
+                        if (!IsInside(root, linkTarget))
+                        {
+                            throw Unsafe(entry.Name, $"its link target '{entry.LinkName}' is outside the target folder");
+                        }
+
+                        links.Add((link, entry.LinkName, linkTarget, true));
+                        break;
+                    case TarEntryType.HardLink:
+                        links.Add((ResolveInside(root, entry.Name), entry.LinkName, ResolveInside(root, entry.LinkName), false));
+                        break;
+                    default:
+                        // PAX/GNU metadata entries are consumed by TarReader; devices and FIFOs are skipped.
+                        break;
+                }
+            }
+        }
+
+        foreach (var (path, linkName, target, symbolic) in links)
+        {
+            CreateLink(path, linkName, target, symbolic);
+        }
+    }
+
+    private static void CreateLink(string path, string linkName, string target, bool symbolic)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        if (symbolic && !OperatingSystem.IsWindows())
+        {
+            File.CreateSymbolicLink(path, linkName);
+            return;
+        }
+
+        // Hard links, and symbolic links on Windows (which need extra privileges), become copies of their target.
+        if (File.Exists(target))
+        {
+            File.Copy(target, path, overwrite: true);
+        }
+    }
+
+    private static string ResolveInside(string root, string entryName)
+    {
+        var name = entryName.Replace('\\', '/');
+        if (name.StartsWith('/') || Path.IsPathRooted(name) || (name.Length >= 2 && name[1] == ':'))
+        {
+            throw Unsafe(entryName, "absolute paths are not allowed");
+        }
+
+        var full = Path.GetFullPath(Path.Combine(root, name));
+        if (!IsInside(root, full))
+        {
+            throw Unsafe(entryName, "it would be extracted outside the target folder");
+        }
+
+        return full;
+    }
+
+    private static bool IsInside(string root, string fullPath)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var rootWithSeparator = Path.EndsInDirectorySeparator(root) ? root : root + Path.DirectorySeparatorChar;
+        return string.Equals(Path.TrimEndingDirectorySeparator(fullPath), Path.TrimEndingDirectorySeparator(root), comparison)
+            || fullPath.StartsWith(rootWithSeparator, comparison);
+    }
+
+    private static CakeException Unsafe(string entryName, string reason) =>
+        new($"Refusing to extract archive entry '{entryName}': {reason}.");
+}
