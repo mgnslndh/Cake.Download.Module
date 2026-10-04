@@ -84,6 +84,7 @@ internal static class DownloadPlanner
             Include = include,
             Exclude = exclude,
             Integrity = PlanIntegrity(directive, rid, url, placeholders, platformSpecific),
+            Source = directive.Source,
         };
     }
 

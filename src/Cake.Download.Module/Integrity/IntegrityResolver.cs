@@ -32,8 +32,8 @@ internal sealed class IntegrityResolver
         if (plan.Integrity is MissingIntegrityPlan missing)
         {
             throw new CakeException(
-                $"The download directive for '{plan.Package}' has no integrity check. {plan.AssetName} ({plan.Platform.Rid}) has SHA-256 {actualSha256}. " +
-                $"Add '&{missing.Parameter}={actualSha256}' to the directive, or '&sha256=skip' to install without verification (not recommended). " +
+                $"{Hints.NoIntegrity(plan.Source, plan.Package)} {plan.AssetName} ({plan.Platform.Rid}) has SHA-256 {actualSha256}. " +
+                $"{Hints.AddPin(plan.Source, missing.Parameter, actualSha256)} " +
                 "The download was discarded.");
         }
 
@@ -88,7 +88,7 @@ internal sealed class IntegrityResolver
         {
             throw new CakeException(
                 $"The checksums file {url} is not pinned. Its SHA-256 is {download.Sha256}. " +
-                $"Add '&checksums_sha256={download.Sha256}' to the directive for '{plan.Package}'.");
+                Hints.PinChecksums(plan.Source, plan.Package, url, download.Sha256));
         }
 
         if (!string.Equals(checksums.Sha256, download.Sha256, StringComparison.Ordinal))

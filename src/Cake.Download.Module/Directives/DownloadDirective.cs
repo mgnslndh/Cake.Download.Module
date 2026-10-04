@@ -37,6 +37,8 @@ internal sealed record DownloadDirective
 
     public required IntegritySpec Integrity { get; init; }
 
+    public DirectiveSource Source { get; init; } = DirectiveSource.Directive;
+
     private static Dictionary<string, string> Empty() => new(StringComparer.OrdinalIgnoreCase);
 }
 

@@ -73,6 +73,8 @@ internal sealed record DownloadPlan
 
     public required IntegrityPlan Integrity { get; init; }
 
+    public DirectiveSource Source { get; init; } = DirectiveSource.Directive;
+
     public string FolderName => $"{Package}.{Version}";
 
     public string AssetName => Uri.UnescapeDataString(Url.Segments[^1]);

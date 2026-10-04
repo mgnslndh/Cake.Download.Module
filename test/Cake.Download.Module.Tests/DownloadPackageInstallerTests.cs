@@ -3,6 +3,7 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Core.Packaging;
+using Cake.Download.Module.Directives;
 using Cake.Download.Module.Http;
 using Cake.Download.Module.Platforms;
 using Cake.Download.Module.Tests.Fakes;
@@ -198,8 +199,57 @@ public sealed class DownloadPackageInstallerTests : IDisposable
         Assert.Equal([Path.Combine(_tools, "jq.1.8.2")], Directory.GetDirectories(_tools));
     }
 
-    private IReadOnlyCollection<IFile> Install(string directive, string rid = "linux-x64", string? tools = null, FakeLog? log = null) =>
-        CreateInstaller(rid, log).Install(new PackageReference(directive), PackageType.Tool, new DirectoryPath(tools ?? _tools));
+    [Theory]
+    [InlineData(JqDirective, ".WithSha256(\"linux-x64\", \"{0}\")")]
+    [InlineData("download:https://example.com/jq-linux-amd64?package=jq&version=1.8.2", ".WithSha256(\"{0}\")")]
+    public void Install_From_Settings_Without_Integrity_Suggests_A_Settings_Call(string directive, string call)
+    {
+        var exception = Assert.Throws<CakeException>(() => Install(directive, source: DirectiveSource.Settings));
+
+        Assert.StartsWith("The DownloadToolSettings for 'jq' have no integrity check.", exception.Message);
+        Assert.Contains($"Add {string.Format(call, TestHashes.Sha256(RawContent))} to the DownloadToolSettings, or .WithoutVerification()", exception.Message);
+        Assert.DoesNotContain("&sha256", exception.Message);
+    }
+
+    [Fact]
+    public void Install_From_Settings_With_An_Unpinned_Checksums_File_Suggests_WithChecksums()
+    {
+        const string Sums = "0000000000000000000000000000000000000000000000000000000000000000  jq-linux-amd64\n";
+        _handler.Respond("https://example.com/SHA256SUMS", FakeHttpHandler.Ok(Sums));
+
+        var exception = Assert.Throws<CakeException>(() => Install(JqDirective + "&checksums=SHA256SUMS", source: DirectiveSource.Settings));
+
+        Assert.Contains($"Use .WithChecksums(\"https://example.com/SHA256SUMS\", \"{TestHashes.Sha256(Sums)}\") in the DownloadToolSettings for 'jq'.", exception.Message);
+    }
+
+    [Fact]
+    public void Install_From_A_Directive_With_An_Unpinned_Checksums_File_Suggests_The_Parameter()
+    {
+        const string Sums = "0000000000000000000000000000000000000000000000000000000000000000  jq-linux-amd64\n";
+        _handler.Respond("https://example.com/SHA256SUMS", FakeHttpHandler.Ok(Sums));
+
+        var exception = Assert.Throws<CakeException>(() => Install(JqDirective + "&checksums=SHA256SUMS"));
+
+        Assert.Contains($"Add '&checksums_sha256={TestHashes.Sha256(Sums)}' to the directive for 'jq'.", exception.Message);
+    }
+
+    [Fact]
+    public void Install_From_Settings_Explains_A_404_With_Settings_Overrides()
+    {
+        var exception = Assert.Throws<CakeException>(() => Install(JqDirective + "&sha256=skip", "osx-arm64", source: DirectiveSource.Settings));
+
+        Assert.StartsWith("https://example.com/jq-darwin-arm64 was not found (HTTP 404).", exception.Message);
+        Assert.Contains(".WithOs(…), .WithArch(…), .WithArchive(…) or .WithUrl(\"osx-arm64\", …) to the DownloadToolSettings.", exception.Message);
+        Assert.DoesNotContain("'url.osx-arm64='", exception.Message);
+    }
+
+    private IReadOnlyCollection<IFile> Install(
+        string directive,
+        string rid = "linux-x64",
+        string? tools = null,
+        FakeLog? log = null,
+        DirectiveSource source = DirectiveSource.Directive) =>
+        CreateInstaller(rid, log).Install(new PackageReference(directive), PackageType.Tool, new DirectoryPath(tools ?? _tools), source);
 
     private DownloadPackageInstaller CreateInstaller(string rid = "linux-x64", FakeLog? log = null) => new(
         FakeEnvironment.CreateUnixEnvironment(),

@@ -92,12 +92,15 @@ public sealed class DownloadPackageInstaller : IPackageInstaller
     /// <param name="path">The tools directory.</param>
     /// <returns>The files to register with the tool locator.</returns>
     /// <exception cref="CakeException">The directive is invalid, or downloading, verifying or extracting failed.</exception>
-    public IReadOnlyCollection<IFile> Install(PackageReference package, PackageType type, DirectoryPath path)
+    public IReadOnlyCollection<IFile> Install(PackageReference package, PackageType type, DirectoryPath path) =>
+        Install(package, type, path, DirectiveSource.Directive);
+
+    internal IReadOnlyCollection<IFile> Install(PackageReference package, PackageType type, DirectoryPath path, DirectiveSource source)
     {
         ArgumentNullException.ThrowIfNull(package);
         ArgumentNullException.ThrowIfNull(path);
 
-        var directive = DirectiveParser.Parse(package);
+        var directive = DirectiveParser.Parse(package, source);
         var plan = DownloadPlanner.Create(directive, _platformDetector.Detect());
         var store = new InstallStore(path.MakeAbsolute(_environment).FullPath, _time);
         var installDirectory = store.GetInstallDirectory(plan);
@@ -132,8 +135,7 @@ public sealed class DownloadPackageInstaller : IPackageInstaller
     {
         var expanded = string.Join(", ", plan.Placeholders.Where(entry => entry.Key != "version").Select(entry => $"{{{entry.Key}}}='{entry.Value}'"));
         return $"{plan.Url.AbsoluteUri} was not found (HTTP 404). Detected platform {plan.Platform.Rid}; dialect '{plan.Dialect}' expanded {expanded}. " +
-            "If the asset is named differently on this platform, add an override such as 'os.<value>=', 'arch.<value>=', 'archive.<value>=' " +
-            $"or 'url.{plan.Platform.Rid}=' to the directive.";
+            Hints.NotFoundOverrides(plan.Source, plan.Platform.Rid);
     }
 
     private void InstallFresh(DownloadPlan plan, InstallStore store, bool replaceCurrent)
