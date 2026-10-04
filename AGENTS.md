@@ -10,10 +10,12 @@ installs a module's NuGet dependencies.
 - **Cake references:** `Cake.Core` with `PrivateAssets="all"`, at the lowest compatible version (6.0.0). Raise it only
   when a newer Cake API is required, and say why in the commit message.
 - **Target frameworks:** `net8.0`, `net9.0` and `net10.0`.
-- **Public API:** only `DownloadModule` and `DownloadPackageInstaller` are public. Everything else is `internal`, tested
-  through `InternalsVisibleTo`.
+- **Public API:** only `DownloadModule`, `DownloadPackageInstaller`, `DownloadToolAliases`, `DownloadToolSettings`,
+  `DownloadDialect` and `DownloadFormat` are public. Everything else is `internal`, tested through
+  `InternalsVisibleTo`.
 - **Design:** read `docs/superpowers/specs/2026-10-02-cake-download-module-design.md` before changing the directive
-  grammar, the integrity model or the install layout.
+  grammar, the integrity model or the install layout, and `docs/superpowers/specs/2026-10-04-download-tool-alias-design.md`
+  before changing the `DownloadTool` alias or `DownloadToolSettings`.
 - **Testing:** unit tests in `test/Cake.Download.Module.Tests` (`./build.ps1 --target Test`). Runner tests prove the
   packed module works on the Cake .NET Tool, Cake.Sdk and Cake Frosting against real GitHub releases:
   `./build.ps1 --target RunnerTests` (latest Cake 6.x) and `./build.ps1 --target RunnerTests --cake-version 6.0.0`.
