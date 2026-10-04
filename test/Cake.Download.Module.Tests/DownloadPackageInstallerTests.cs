@@ -219,7 +219,18 @@ public sealed class DownloadPackageInstallerTests : IDisposable
 
         var exception = Assert.Throws<CakeException>(() => Install(JqDirective + "&checksums=SHA256SUMS", source: DirectiveSource.Settings));
 
-        Assert.Contains($"Use .WithChecksums(\"https://example.com/SHA256SUMS\", \"{TestHashes.Sha256(Sums)}\") in the DownloadToolSettings for 'jq'.", exception.Message);
+        Assert.Contains($"Use .WithChecksums(\"SHA256SUMS\", \"{TestHashes.Sha256(Sums)}\") in the DownloadToolSettings for 'jq'.", exception.Message);
+    }
+
+    [Fact]
+    public void Install_From_Settings_Keeps_The_Checksums_Reference_Unexpanded_In_The_Hint()
+    {
+        const string Sums = "0000000000000000000000000000000000000000000000000000000000000000  jq-linux-amd64\n";
+        _handler.Respond("https://example.com/jq_1.8.2_checksums.txt", FakeHttpHandler.Ok(Sums));
+
+        var exception = Assert.Throws<CakeException>(() => Install(JqDirective + "&checksums=jq_{version}_checksums.txt", source: DirectiveSource.Settings));
+
+        Assert.Contains($"Use .WithChecksums(\"jq_{{version}}_checksums.txt\", \"{TestHashes.Sha256(Sums)}\") in the DownloadToolSettings for 'jq'.", exception.Message);
     }
 
     [Fact]

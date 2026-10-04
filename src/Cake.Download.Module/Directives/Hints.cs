@@ -14,8 +14,8 @@ internal static class Hints
         ? $"Add {PinCall(parameter, sha256)} to the DownloadToolSettings, or .WithoutVerification() to install without verification (not recommended)."
         : $"Add '&{parameter}={sha256}' to the directive, or '&sha256=skip' to install without verification (not recommended).";
 
-    public static string PinChecksums(DirectiveSource source, string package, string checksumsUrl, string sha256) => source == DirectiveSource.Settings
-        ? $"Use .WithChecksums(\"{checksumsUrl}\", \"{sha256}\") in the DownloadToolSettings for '{package}'."
+    public static string PinChecksums(DirectiveSource source, string package, string checksumsReference, string sha256) => source == DirectiveSource.Settings
+        ? $"Use .WithChecksums(\"{checksumsReference}\", \"{sha256}\") in the DownloadToolSettings for '{package}'."
         : $"Add '&checksums_sha256={sha256}' to the directive for '{package}'.";
 
     public static string NotFoundOverrides(DirectiveSource source, string rid) => source == DirectiveSource.Settings

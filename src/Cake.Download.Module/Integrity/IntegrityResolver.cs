@@ -88,7 +88,7 @@ internal sealed class IntegrityResolver
         {
             throw new CakeException(
                 $"The checksums file {url} is not pinned. Its SHA-256 is {download.Sha256}. " +
-                Hints.PinChecksums(plan.Source, plan.Package, url, download.Sha256));
+                Hints.PinChecksums(plan.Source, plan.Package, checksums.Reference, download.Sha256));
         }
 
         if (!string.Equals(checksums.Sha256, download.Sha256, StringComparison.Ordinal))
