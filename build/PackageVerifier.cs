@@ -5,13 +5,15 @@ namespace Build;
 
 /// <summary>
 /// Checks a packed Cake.Download.Module .nupkg: a library and its XML docs per target framework, the icon and README,
-/// the <c>cake-module</c> tag, and no dependencies at all, since Cake never installs a <c>#module</c>'s dependencies.
+/// the <c>cake-module</c> and <c>cake-addin</c> tags, and no dependencies at all, since Cake never installs a <c>#module</c>'s dependencies.
 /// </summary>
 public static class PackageVerifier
 {
     private const string PackageId = "Cake.Download.Module";
 
     private static readonly string[] TargetFrameworks = ["net8.0", "net9.0", "net10.0"];
+
+    private static readonly string[] RequiredTags = ["cake-module", "cake-addin"];
 
     private static readonly char[] TagSeparators = [' ', ','];
 
@@ -44,9 +46,13 @@ public static class PackageVerifier
         var ns = nuspec.Root!.Name.Namespace;
 
         var tags = (string?)nuspec.Root.Element(ns + "metadata")?.Element(ns + "tags") ?? string.Empty;
-        if (!tags.Split(TagSeparators, StringSplitOptions.RemoveEmptyEntries).Contains("cake-module"))
+        var tagList = tags.Split(TagSeparators, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var required in RequiredTags)
         {
-            problems.Add("nuspec tags do not contain 'cake-module'");
+            if (!tagList.Contains(required))
+            {
+                problems.Add($"nuspec tags do not contain '{required}'");
+            }
         }
 
         var dependencies = nuspec.Descendants(ns + "dependency")

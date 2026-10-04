@@ -4,7 +4,7 @@ namespace Build.Tests;
 
 public sealed class PackageVerifierTests : IDisposable
 {
-    private const string Tags = "cake,cake-module,cake-build,download,tool";
+    private const string Tags = "cake,cake-module,cake-addin,cake-build,download,tool";
 
     private static readonly string[] Libraries =
     [
@@ -43,6 +43,14 @@ public sealed class PackageVerifierTests : IDisposable
         var package = CreatePackage(Libraries.Concat(["icon.png", "README.md"]), Nuspec("cake,cake-addin"));
 
         Assert.Equal(["nuspec tags do not contain 'cake-module'"], PackageVerifier.Verify(package));
+    }
+
+    [Fact]
+    public void Verify_Reports_A_Missing_Cake_Addin_Tag()
+    {
+        var package = CreatePackage(Libraries.Concat(["icon.png", "README.md"]), Nuspec("cake,cake-module"));
+
+        Assert.Equal(["nuspec tags do not contain 'cake-addin'"], PackageVerifier.Verify(package));
     }
 
     [Fact]

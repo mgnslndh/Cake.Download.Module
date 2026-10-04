@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `rust` dialects and per-directive overrides.
 - `package` and `version` must start with a letter or digit, so values such as `.` or `..` are rejected.
 - Idempotent installs into `<tools>/<package>.<version>/`: unchanged directives make no network requests.
+- `DownloadTool` alias: installs a `download:` tool when it is called, for example inside a task, and registers it with
+  Cake's tool locator, so runs that don't execute that task (other targets, `--dryrun`) download nothing. It takes the
+  same directive as `#tool`, as a `string` or `Uri`. Scripts load the alias with
+  `#addin nuget:?package=Cake.Download.Module`; Frosting and Cake.Sdk need only the package reference.
 
 ### Fixed
 

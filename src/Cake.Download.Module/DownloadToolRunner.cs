@@ -1,0 +1,44 @@
+using Cake.Core;
+using Cake.Core.IO;
+using Cake.Core.Packaging;
+using Cake.Download.Module.Directives;
+
+namespace Cake.Download.Module;
+
+/// <summary>
+/// What the <see cref="DownloadToolAliases"/> do: install into Cake's tools folder and register the files with
+/// <c>context.Tools</c>. The installer is passed in so tests can fake the network and the platform.
+/// </summary>
+internal sealed class DownloadToolRunner(ICakeContext context, DownloadPackageInstaller installer)
+{
+    public IReadOnlyCollection<FilePath> Install(string directive)
+    {
+        PackageReference reference;
+        try
+        {
+            reference = new PackageReference(directive);
+        }
+        catch (ArgumentException)
+        {
+            // Cake's PackageReference rejects a missing 'package' parameter before the directive parser sees it.
+            throw new CakeException($"Invalid download directive '{directive}': the 'package' parameter is required.");
+        }
+
+        return Install(reference, DirectiveSource.Directive);
+    }
+
+    internal IReadOnlyCollection<FilePath> Install(PackageReference reference, DirectiveSource source)
+    {
+        var toolsPath = context.Configuration.GetToolPath(context.Environment.WorkingDirectory, context.Environment);
+        var files = installer.Install(reference, PackageType.Tool, toolsPath, source);
+
+        var paths = new List<FilePath>(files.Count);
+        foreach (var file in files)
+        {
+            context.Tools.RegisterFile(file.Path);
+            paths.Add(file.Path);
+        }
+
+        return paths;
+    }
+}

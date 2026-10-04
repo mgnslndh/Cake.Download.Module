@@ -22,7 +22,7 @@
   <PropertyGroup Label="Package Information">
     <IsPackable>false</IsPackable>
     <Copyright>Copyright © Magnus Lindhe</Copyright>
-    <PackageTags>cake,cake-module,cake-build,download,tool,github,release,binary</PackageTags>
+    <PackageTags>cake,cake-module,cake-addin,cake-build,download,tool,github,release,binary</PackageTags>
     <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/mgnslndh/Cake.Download.Module</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
