@@ -333,7 +333,8 @@ only changes which files are selected.
   - Regular files and directories are extracted, keeping Unix permission bits on Unix hosts.
   - Symlinks and hardlinks are only allowed when their target resolves inside the root. No entry or link
     may pass *through* a symlink, but a symlink may point *at* another symlink (`libfoo.so -> libfoo.so.1`),
-    so following a chain stays inside the root.
+    so following a chain stays inside the root. Every step of a symlink target must stay inside the root,
+    because the root is renamed on publish: `../../content/x` would point outside the install folder.
   - Hardlinks, and symlinks on Windows, are materialized as copies (a symlink to a directory as a copy of
     the directory). A link is copied once its target no longer is, or contains, a link waiting to be
     copied, so archive order doesn't matter; links that never become ready are a link cycle and an error.

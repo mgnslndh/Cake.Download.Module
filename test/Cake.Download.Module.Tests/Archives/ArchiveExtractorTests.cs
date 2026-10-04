@@ -73,6 +73,21 @@ public sealed class ArchiveExtractorTests : IDisposable
         Assert.Equal("Refusing to extract archive entry 'bin/tool': its link target '../../../outside' is outside the target folder.", exception.Message);
     }
 
+    [Theory]
+    [InlineData("zip")]
+    [InlineData("tar.gz")]
+    public void Extract_Rejects_A_Symlink_That_Leaves_The_Destination_And_Comes_Back(string format)
+    {
+        // The destination is renamed after extraction, so a target that climbs out and back in by its folder name
+        // would point somewhere else once the install is published.
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormats.FromName(format),
+            new ArchiveEntrySpec("x", "x"),
+            ArchiveEntrySpec.Symlink("bin/tool", "../../content/x")));
+
+        Assert.Equal("Refusing to extract archive entry 'bin/tool': its link target '../../content/x' is outside the target folder.", exception.Message);
+    }
+
     [Fact]
     public void Extract_Materializes_Links_Inside_The_Destination()
     {

@@ -18,7 +18,7 @@ internal sealed class ArchiveLinks(string root)
     {
         var path = ResolveInside(root, name);
         var target = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, linkName));
-        if (!IsInside(root, target))
+        if (!IsInside(root, target) || LeavesRoot(Path.GetDirectoryName(path)!, linkName))
         {
             throw Unsafe(name, $"its link target '{linkName}' is outside the target folder");
         }
@@ -62,6 +62,28 @@ internal sealed class ArchiveLinks(string root)
         }
 
         CreateLinks(log);
+    }
+
+    private bool LeavesRoot(string baseDirectory, string linkName)
+    {
+        // The root is renamed when the install is published, so a target that climbs out of the root and back in by
+        // its folder name ("../../content/x") would resolve somewhere else afterwards. Every step must stay inside.
+        var current = baseDirectory;
+        foreach (var segment in linkName.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (segment == ".")
+            {
+                continue;
+            }
+
+            current = segment == ".." ? Path.GetDirectoryName(current) ?? current : Path.Combine(current, segment);
+            if (!IsInside(root, current))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool WalksThrough(string baseDirectory, string linkName, List<string> symlinkPaths, bool allowLastSegment)

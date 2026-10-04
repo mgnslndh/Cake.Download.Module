@@ -28,3 +28,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   symlink whose target isn't in the archive is logged (verbose) instead of being dropped silently.
 - Symlinks in zip archives are now extracted as symlinks (copies on Windows) instead of as small text files that
   contain the link target.
+- Archive symlinks whose target leaves the extraction folder and comes back by its name (e.g. `../../content/x`) are now
+  rejected; after install they would have pointed outside the install folder.
