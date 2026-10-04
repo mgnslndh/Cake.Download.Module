@@ -201,7 +201,7 @@ public sealed class DownloadPackageInstaller : IPackageInstaller
             }
             else
             {
-                ArchiveExtractor.Extract(assetPath, plan.Format, staging.ContentDirectory);
+                ArchiveExtractor.Extract(assetPath, plan.Format, staging.ContentDirectory, _log);
             }
         }
         catch (Exception exception) when (exception is InvalidDataException or IOException)

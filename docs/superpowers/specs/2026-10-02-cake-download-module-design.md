@@ -331,11 +331,19 @@ only changes which files are selected.
 - **Tar:**
   - Uses `System.Formats.Tar` (`TarReader`, with `GZipStream` for `tar.gz`).
   - Regular files and directories are extracted, keeping Unix permission bits on Unix hosts.
-  - Symlinks and hardlinks are only allowed when their target resolves inside the root. On Windows they
-    are materialized as copies.
+  - Symlinks and hardlinks are only allowed when their target resolves inside the root. No entry or link
+    may pass *through* a symlink, but a symlink may point *at* another symlink (`libfoo.so -> libfoo.so.1`),
+    so following a chain stays inside the root.
+  - Hardlinks, and symlinks on Windows, are materialized as copies (a symlink to a directory as a copy of
+    the directory). A link is copied once its target no longer is, or contains, a link waiting to be
+    copied, so archive order doesn't matter; links that never become ready are a link cycle and an error.
+    On Windows, a symlink whose target isn't in the archive is skipped with a verbose log; a hardlink to a
+    missing target is an error.
   - Other entry types (devices, FIFOs) are skipped with a verbose log.
 - **Zip:** uses `System.IO.Compression`. On Unix hosts, if an entry has Unix mode bits
-  (`ExternalAttributes >> 16`), the permission bits are applied.
+  (`ExternalAttributes >> 16`), the permission bits are applied. An entry whose file type bits mark a
+  symlink (`0xA000`) is a symlink whose target is the entry's content (at most 4096 bytes), handled with
+  the same rules as tar symlinks.
 - On Unix, every **selected** file (and a raw download) also gets `u+x,g+x,o+x`. This covers zips
   created on Windows, which carry no modes.
 

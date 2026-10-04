@@ -23,3 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `filename` must now start with a letter or digit and contain only letters, digits, `.`, `_`, `+` and `-`, so names with
   spaces or colons are rejected. Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM0`-`COM9`, `LPT0`-`LPT9`, and their superscript variants `COM¹`–`COM³`, `LPT¹`–`LPT³`,
   with or without an extension) are rejected for `filename` and `package`.
+- Tar archives with symlink chains (e.g. `libfoo.so -> libfoo.so.1 -> libfoo.so.1.2.3`) no longer fail to extract.
+- On Windows, a tar symlink to a directory is now extracted as a copy of the directory instead of being dropped, and a
+  symlink whose target isn't in the archive is logged (verbose) instead of being dropped silently.
+- Symlinks in zip archives are now extracted as symlinks (copies on Windows) instead of as small text files that
+  contain the link target.

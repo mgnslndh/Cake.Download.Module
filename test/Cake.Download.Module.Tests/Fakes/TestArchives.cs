@@ -12,11 +12,15 @@ internal sealed record ArchiveEntrySpec(string Name, string Content = "", UnixFi
 
     public string? HardlinkTarget { get; init; }
 
+    public bool IsFifo { get; init; }
+
     public static ArchiveEntrySpec Directory(string name) => new(name) { IsDirectory = true };
 
     public static ArchiveEntrySpec Symlink(string name, string target) => new(name) { SymlinkTarget = target };
 
     public static ArchiveEntrySpec Hardlink(string name, string target) => new(name) { HardlinkTarget = target };
+
+    public static ArchiveEntrySpec Fifo(string name) => new(name) { IsFifo = true };
 }
 
 internal static class TestArchives
@@ -31,15 +35,19 @@ internal static class TestArchives
             foreach (var spec in entries)
             {
                 var entry = archive.CreateEntry(spec.IsDirectory ? spec.Name.TrimEnd('/') + "/" : spec.Name);
-                if (spec.Mode is { } mode)
+                if (spec.SymlinkTarget is not null)
+                {
+                    entry.ExternalAttributes = unchecked((int)(0xA1FFu << 16));
+                }
+                else if (spec.Mode is { } mode)
                 {
                     entry.ExternalAttributes = unchecked((int)(((uint)mode | 0x8000u) << 16));
                 }
 
                 if (!spec.IsDirectory)
                 {
-                    using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
-                    writer.Write(spec.Content);
+                    using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                    writer.Write(spec.SymlinkTarget ?? spec.Content);
                 }
             }
         }
@@ -67,6 +75,10 @@ internal static class TestArchives
                 else if (spec.HardlinkTarget is not null)
                 {
                     entry = new PaxTarEntry(TarEntryType.HardLink, spec.Name) { LinkName = spec.HardlinkTarget };
+                }
+                else if (spec.IsFifo)
+                {
+                    entry = new PaxTarEntry(TarEntryType.Fifo, spec.Name);
                 }
                 else
                 {

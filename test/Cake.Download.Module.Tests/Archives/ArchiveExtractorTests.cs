@@ -1,7 +1,9 @@
 using Cake.Core;
+using Cake.Core.Diagnostics;
 using Cake.Download.Module.Archives;
 using Cake.Download.Module.Directives;
 using Cake.Download.Module.Tests.Fakes;
+using Cake.Testing;
 
 namespace Cake.Download.Module.Tests.Archives;
 
@@ -12,6 +14,8 @@ public sealed class ArchiveExtractorTests : IDisposable
         UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
 
     private readonly TestDirectory _directory = new();
+
+    private readonly FakeLog _log = new();
 
     public void Dispose() => _directory.Dispose();
 
@@ -80,6 +84,124 @@ public sealed class ArchiveExtractorTests : IDisposable
 
         Assert.Equal("binary", File.ReadAllText(Path.Combine(target, "tool-1.0", "tool")));
         Assert.Equal("binary", File.ReadAllText(Path.Combine(target, "tool-1.0", "tool-copy")));
+    }
+
+    [Fact]
+    public void Extract_Follows_A_Symlink_Chain()
+    {
+        var target = Extract(
+            ArchiveFormat.TarGz,
+            new ArchiveEntrySpec("lib/libfoo.so.1.2.3", "library"),
+            ArchiveEntrySpec.Symlink("lib/libfoo.so.1", "libfoo.so.1.2.3"),
+            ArchiveEntrySpec.Symlink("lib/libfoo.so", "libfoo.so.1"));
+
+        Assert.Equal("library", File.ReadAllText(Path.Combine(target, "lib", "libfoo.so")));
+    }
+
+    [Fact]
+    public void Extract_Follows_A_Symlink_Chain_Listed_Before_Its_Targets()
+    {
+        var target = Extract(
+            ArchiveFormat.TarGz,
+            ArchiveEntrySpec.Symlink("lib/libfoo.so", "libfoo.so.1"),
+            ArchiveEntrySpec.Symlink("lib/libfoo.so.1", "libfoo.so.1.2.3"),
+            new ArchiveEntrySpec("lib/libfoo.so.1.2.3", "library"));
+
+        Assert.Equal("library", File.ReadAllText(Path.Combine(target, "lib", "libfoo.so")));
+    }
+
+    [Fact]
+    public void Extract_Materializes_A_Symlink_To_A_Directory()
+    {
+        var target = Extract(
+            ArchiveFormat.TarGz,
+            ArchiveEntrySpec.Symlink("current", "tool-1.2"),
+            new ArchiveEntrySpec("tool-1.2/bin/tool.exe", "binary"),
+            ArchiveEntrySpec.Symlink("tool-1.2/bin/tool", "tool.exe"));
+
+        Assert.Equal("binary", File.ReadAllText(Path.Combine(target, "current", "bin", "tool.exe")));
+        Assert.Equal("binary", File.ReadAllText(Path.Combine(target, "current", "bin", "tool")));
+    }
+
+    [Theory]
+    [InlineData("a", "b", "b", "a")]
+    [InlineData("a/loop", "..", "b", "a")]
+    public void Extract_Rejects_A_Link_Cycle_When_Links_Become_Copies(string firstLink, string firstTarget, string secondLink, string secondTarget)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Links only become copies on Windows.");
+            return;
+        }
+
+        var exception = Assert.Throws<CakeException>(() => Extract(
+            ArchiveFormat.TarGz,
+            ArchiveEntrySpec.Symlink(firstLink, firstTarget),
+            ArchiveEntrySpec.Symlink(secondLink, secondTarget)));
+
+        Assert.Contains("is part of a link cycle", exception.Message);
+    }
+
+    [Fact]
+    public void Extract_Skips_And_Logs_A_Symlink_To_A_Missing_Target_When_Links_Become_Copies()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Links only become copies on Windows.");
+            return;
+        }
+
+        var target = Extract(ArchiveFormat.TarGz, ArchiveEntrySpec.Symlink("bin/tool", "missing"));
+
+        Assert.False(File.Exists(Path.Combine(target, "bin", "tool")));
+        var entry = Assert.Single(_log.Entries);
+        Assert.Equal(Verbosity.Verbose, entry.Verbosity);
+        Assert.Equal("Skipping archive entry 'bin/tool': its link target 'missing' does not exist in the archive.", entry.Message);
+    }
+
+    [Fact]
+    public void Extract_Skips_And_Logs_Special_Entries()
+    {
+        var target = Extract(ArchiveFormat.TarGz, ArchiveEntrySpec.Fifo("pipe"));
+
+        Assert.False(File.Exists(Path.Combine(target, "pipe")));
+        var entry = Assert.Single(_log.Entries);
+        Assert.Equal(Verbosity.Verbose, entry.Verbosity);
+        Assert.Equal("Skipping archive entry 'pipe': Fifo entries are not extracted.", entry.Message);
+    }
+
+    [Fact]
+    public void Extract_Materializes_Zip_Symlinks()
+    {
+        var target = Extract(
+            ArchiveFormat.Zip,
+            ArchiveEntrySpec.Symlink("bin/tool", "../libexec/tool"),
+            new ArchiveEntrySpec("libexec/tool", "binary"));
+
+        var tool = Path.Combine(target, "bin", "tool");
+        Assert.Equal("binary", File.ReadAllText(tool));
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Equal("../libexec/tool", new FileInfo(tool).LinkTarget);
+        }
+    }
+
+    [Fact]
+    public void Extract_Rejects_A_Zip_Symlink_Pointing_Outside_The_Destination()
+    {
+        var exception = Assert.Throws<CakeException>(
+            () => Extract(ArchiveFormat.Zip, ArchiveEntrySpec.Symlink("bin/tool", "../../../outside")));
+
+        Assert.Equal("Refusing to extract archive entry 'bin/tool': its link target '../../../outside' is outside the target folder.", exception.Message);
+    }
+
+    [Fact]
+    public void Extract_Rejects_An_Oversized_Zip_Symlink()
+    {
+        var exception = Assert.Throws<CakeException>(
+            () => Extract(ArchiveFormat.Zip, ArchiveEntrySpec.Symlink("bin/tool", new string('a', 4097))));
+
+        Assert.Equal("Refusing to extract archive entry 'bin/tool': its link target is longer than 4096 bytes.", exception.Message);
     }
 
     [Fact]
@@ -181,7 +303,7 @@ public sealed class ArchiveExtractorTests : IDisposable
     [Fact]
     public void Extract_Rejects_Raw_Files()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => ArchiveExtractor.Extract(_directory.Combine("x"), ArchiveFormat.File, _directory.Combine("out")));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ArchiveExtractor.Extract(_directory.Combine("x"), ArchiveFormat.File, _directory.Combine("out"), _log));
     }
 
     private string Extract(ArchiveFormat format, params ArchiveEntrySpec[] entries)
@@ -189,7 +311,7 @@ public sealed class ArchiveExtractorTests : IDisposable
         var archive = _directory.Combine("archive");
         File.WriteAllBytes(archive, format == ArchiveFormat.Zip ? TestArchives.Zip(entries) : TestArchives.Tar(format == ArchiveFormat.TarGz, entries));
         var target = _directory.Combine("sandbox", "content");
-        ArchiveExtractor.Extract(archive, format, target);
+        ArchiveExtractor.Extract(archive, format, target, _log);
         return target;
     }
 }
