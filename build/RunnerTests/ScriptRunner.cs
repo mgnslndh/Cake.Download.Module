@@ -22,6 +22,8 @@ public sealed class ScriptRunner : IRunner
             {
                 [@"^#module nuget:\?package=Cake\.Download\.Module&version=[^\r\n]*"] =
                     $"#module nuget:?package=Cake.Download.Module&version={test.ModuleVersion}&prerelease",
+                [@"^#addin nuget:\?package=Cake\.Download\.Module&version=[^\r\n]*"] =
+                    $"#addin nuget:?package=Cake.Download.Module&version={test.ModuleVersion}&prerelease",
             });
 
         return RunnerProcess.Run(
@@ -37,17 +39,18 @@ public sealed class ScriptRunner : IRunner
             test.WorkDirectory(Name));
     }
 
-    public int Run(ICakeContext context, RunnerTestContext test)
+    public int Run(ICakeContext context, RunnerTestContext test, bool dryRun)
     {
         var executable = ToolDirectory(test).CombineWithFilePath(context.IsRunningOnWindows() ? "dotnet-cake.exe" : "dotnet-cake");
-        return RunnerProcess.Run(
-            context,
-            test,
-            executable,
-            new ProcessArgumentBuilder()
-                .Append("build.cake")
-                .AppendSwitchQuoted("--output", "=", test.OutputDirectory(Name).FullPath),
-            test.SourceDirectory(Name));
+        var arguments = new ProcessArgumentBuilder()
+            .Append("build.cake")
+            .AppendSwitchQuoted("--output", "=", test.OutputDirectory(Name).FullPath);
+        if (dryRun)
+        {
+            arguments.Append("--dryrun");
+        }
+
+        return RunnerProcess.Run(context, test, executable, arguments, test.SourceDirectory(Name));
     }
 
     private DirectoryPath ToolDirectory(RunnerTestContext test) => test.WorkDirectory(Name).Combine("cake-tool");

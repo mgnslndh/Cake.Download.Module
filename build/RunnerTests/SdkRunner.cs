@@ -25,15 +25,19 @@ public sealed class SdkRunner : IRunner
         return 0;
     }
 
-    public int Run(ICakeContext context, RunnerTestContext test) => RunnerProcess.Run(
-        context,
-        test,
-        "dotnet",
-        new ProcessArgumentBuilder()
+    public int Run(ICakeContext context, RunnerTestContext test, bool dryRun)
+    {
+        var arguments = new ProcessArgumentBuilder()
             .Append("run")
             .Append("--no-cache")
             .AppendSwitchQuoted("--file", test.SourceDirectory(Name).CombineWithFilePath("cake.cs").FullPath)
             .Append("--")
-            .AppendSwitchQuoted("--output", "=", test.OutputDirectory(Name).FullPath),
-        test.SourceDirectory(Name));
+            .AppendSwitchQuoted("--output", "=", test.OutputDirectory(Name).FullPath);
+        if (dryRun)
+        {
+            arguments.Append("--dryrun");
+        }
+
+        return RunnerProcess.Run(context, test, "dotnet", arguments, test.SourceDirectory(Name));
+    }
 }

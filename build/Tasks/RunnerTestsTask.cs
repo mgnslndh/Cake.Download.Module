@@ -24,7 +24,8 @@ public sealed class RunnerTestsTask : FrostingTask<BuildContext>
         ScriptTemplate.EnsureConsistent(
             File.ReadAllText(runners.CombineWithFilePath("script/build.cake").FullPath),
             File.ReadAllText(runners.CombineWithFilePath("sdk/cake.cs").FullPath),
-            File.ReadAllText(runners.CombineWithFilePath("frosting/Program.cs").FullPath));
+            File.ReadAllText(runners.CombineWithFilePath("frosting/Program.cs").FullPath)
+                + File.ReadAllText(runners.CombineWithFilePath("frosting/OnDemandTask.cs").FullPath));
 
         if (!context.FileExists(context.PackageFile))
         {
@@ -88,7 +89,16 @@ public sealed class RunnerTestsTask : FrostingTask<BuildContext>
                 return result;
             }
 
-            var first = runner.Run(context, test);
+            var dryRun = runner.Run(context, test, dryRun: true);
+            if (dryRun != 0)
+            {
+                result.Failures.Add($"the --dryrun run exited with code {dryRun}");
+                return result;
+            }
+
+            result.Failures.AddRange(ReportAssertions.CheckDryRun(tools));
+
+            var first = runner.Run(context, test, dryRun: false);
             if (first != 0)
             {
                 result.Failures.Add($"the first run exited with code {first}");
@@ -96,7 +106,7 @@ public sealed class RunnerTestsTask : FrostingTask<BuildContext>
             }
 
             var before = MarkerSnapshot.Take(tools);
-            var second = runner.Run(context, test);
+            var second = runner.Run(context, test, dryRun: false);
             if (second != 0)
             {
                 result.Failures.Add($"the second run exited with code {second}");

@@ -43,6 +43,6 @@ public sealed class ScriptTemplateTests
             "InstallTool(\"download:https://a.example/x?package=a\");\n" + Pipeline,
             ".InstallTool(new Uri(\"download:https://a.example/y?package=a\"))"));
 
-        Assert.StartsWith("The download: directives in test/runners/frosting/Program.cs differ from test/runners/script/build.cake.", exception.Message);
+        Assert.StartsWith("The download: directives in test/runners/frosting differ from test/runners/script/build.cake.", exception.Message);
     }
 }

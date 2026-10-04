@@ -12,6 +12,7 @@ public interface IRunner
     /// <returns>The exit code; 0 means success.</returns>
     int Prepare(ICakeContext context, RunnerTestContext test);
 
+    /// <param name="dryRun">Pass <c>--dryrun</c>, so Cake runs no task.</param>
     /// <returns>The exit code; 0 means success.</returns>
-    int Run(ICakeContext context, RunnerTestContext test);
+    int Run(ICakeContext context, RunnerTestContext test, bool dryRun);
 }

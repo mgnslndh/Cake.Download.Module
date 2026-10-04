@@ -7,6 +7,15 @@ namespace Build.RunnerTests;
 /// </summary>
 public static partial class ReportAssertions
 {
+    /// <summary>Install folders of the tools the scenario installs with <c>DownloadTool</c> inside a task.</summary>
+    public static readonly string[] OnDemandInstallFolders = ["jq.1.8.2"];
+
+    public static IReadOnlyList<string> CheckDryRun(string toolsDirectory) =>
+        OnDemandInstallFolders
+            .Where(folder => Directory.Exists(Path.Combine(toolsDirectory, folder)))
+            .Select(folder => $"--dryrun installed {folder}; DownloadTool must only install when its task runs")
+            .ToList();
+
     public static IReadOnlyList<string> Check(IReadOnlyList<ToolReportEntry> report, bool isWindows)
     {
         var exe = isWindows ? ".exe" : string.Empty;

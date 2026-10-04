@@ -2,8 +2,10 @@ using Build.RunnerTests;
 
 namespace Build.Tests;
 
-public sealed class ReportAssertionsTests
+public sealed class ReportAssertionsTests : IDisposable
 {
+    private readonly string _tools = Directory.CreateTempSubdirectory("ReportAssertionsTests").FullName;
+
     private static readonly string Sha = new('a', 64);
 
     private static readonly ToolReportEntry[] Linux =
@@ -13,6 +15,24 @@ public sealed class ReportAssertionsTests
         new("rg", "rg.14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl/rg", Sha, "ripgrep 14.1.1\n\nfeatures:+pcre2"),
         new("cyclonedx", "cyclonedx.0.30.0/cyclonedx", Sha, "0.30.0+abc"),
     ];
+
+    public void Dispose() => Directory.Delete(_tools, recursive: true);
+
+    [Fact]
+    public void CheckDryRun_Accepts_A_Tools_Folder_Without_On_Demand_Installs()
+    {
+        Directory.CreateDirectory(Path.Combine(_tools, "gh.2.62.0"));
+
+        Assert.Empty(ReportAssertions.CheckDryRun(_tools));
+    }
+
+    [Fact]
+    public void CheckDryRun_Reports_An_On_Demand_Install()
+    {
+        Directory.CreateDirectory(Path.Combine(_tools, "jq.1.8.2"));
+
+        Assert.Equal(["--dryrun installed jq.1.8.2; DownloadTool must only install when its task runs"], ReportAssertions.CheckDryRun(_tools));
+    }
 
     [Fact]
     public void Check_Accepts_A_Complete_Report()
