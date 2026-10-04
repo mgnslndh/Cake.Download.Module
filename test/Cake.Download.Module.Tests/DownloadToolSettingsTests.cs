@@ -236,6 +236,39 @@ public sealed class DownloadToolSettingsTests
         Assert.Equal("jq", clone.Package);
     }
 
+    [Fact]
+    public void WithIdentity_Fills_A_Copy_And_Leaves_The_Settings_Unchanged()
+    {
+        var settings = new DownloadToolSettings().WithSha256(HexA);
+
+        var filled = settings.WithIdentity("jq", "1.8.2", "https://example.com/jq");
+
+        Assert.NotSame(settings, filled);
+        Assert.Equal("download:https://example.com/jq?package=jq&version=1.8.2&sha256=" + HexA, filled.ToDirective());
+        Assert.Null(settings.Package);
+        Assert.Null(settings.Version);
+        Assert.Null(settings.Url);
+    }
+
+    [Fact]
+    public void WithIdentity_Accepts_Equal_Values()
+    {
+        var settings = Minimal();
+
+        Assert.Equal(settings.ToDirective(), settings.WithIdentity("jq", "1.8.2", "https://example.com/jq-{os}").ToDirective());
+    }
+
+    [Theory]
+    [InlineData("rg", "1.8.2", "https://example.com/jq-{os}", "The package argument 'rg' conflicts with DownloadToolSettings.Package 'jq'. Set it in one place.")]
+    [InlineData("jq", "1.9.0", "https://example.com/jq-{os}", "The version argument '1.9.0' conflicts with DownloadToolSettings.Version '1.8.2'. Set it in one place.")]
+    [InlineData("jq", "1.8.2", "https://example.com/other", "The url argument 'https://example.com/other' conflicts with DownloadToolSettings.Url 'https://example.com/jq-{os}'. Set it in one place.")]
+    public void WithIdentity_Rejects_Conflicting_Values(string package, string version, string url, string message)
+    {
+        var exception = Assert.Throws<CakeException>(() => Minimal().WithIdentity(package, version, url));
+
+        Assert.Equal(message, exception.Message);
+    }
+
     private static DownloadToolSettings Minimal() =>
         new DownloadToolSettings().WithPackage("jq").WithVersion("1.8.2").WithUrl("https://example.com/jq-{os}");
 

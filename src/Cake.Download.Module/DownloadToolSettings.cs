@@ -318,6 +318,20 @@ public sealed class DownloadToolSettings
         return clone;
     }
 
+    internal DownloadToolSettings WithIdentity(string package, string version, string url)
+    {
+        var filled = Clone();
+        filled.Package = Merge("package", package, nameof(Package), Package);
+        filled.Version = Merge("version", version, nameof(Version), Version);
+        filled.Url = Merge("url", url, nameof(Url), Url);
+        return filled;
+    }
+
+    private static string Merge(string argument, string value, string property, string? current) =>
+        current is null || string.Equals(current, value, StringComparison.Ordinal)
+            ? value
+            : throw new CakeException($"The {argument} argument '{value}' conflicts with DownloadToolSettings.{property} '{current}'. Set it in one place.");
+
     private static Dictionary<string, string> NewMap() => new(StringComparer.OrdinalIgnoreCase);
 
     private static void Copy(IDictionary<string, string> from, IDictionary<string, string> to)

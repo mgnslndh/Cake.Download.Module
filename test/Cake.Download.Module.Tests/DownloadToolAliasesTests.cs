@@ -119,6 +119,83 @@ public sealed class DownloadToolAliasesTests : IDisposable
         Assert.Throws<ArgumentNullException>(() => _context.DownloadTool((Uri)null!));
     }
 
+    private static DownloadToolSettings JqSettings() =>
+        new DownloadToolSettings().WithSha256("linux-x64", TestHashes.Sha256(RawContent));
+
+    [Fact]
+    public void Install_With_Identity_Arguments_Registers_And_Returns_The_Files()
+    {
+        var path = Assert.Single(CreateRunner().Install("jq", "1.8.2", "https://example.com/jq-{os}-{arch}", JqSettings()));
+
+        Assert.EndsWith("/tools/jq.1.8.2/jq", path.FullPath, StringComparison.Ordinal);
+        Assert.Equal([path.FullPath], _context.Tools.Registered.Select(registered => registered.FullPath));
+    }
+
+    [Fact]
+    public void Install_With_Settings_Only_Uses_The_Identity_From_The_Settings()
+    {
+        var settings = JqSettings().WithPackage("jq").WithVersion("1.8.2").WithUrl("https://example.com/jq-{os}-{arch}");
+
+        var path = Assert.Single(CreateRunner().Install(settings));
+
+        Assert.EndsWith("/tools/jq.1.8.2/jq", path.FullPath, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Settings_And_The_Equivalent_Directive_Share_One_Install()
+    {
+        CreateRunner().Install("jq", "1.8.2", "https://example.com/jq-{os}-{arch}", JqSettings());
+        var requests = _handler.RequestedUrls.Count;
+
+        CreateRunner().Install(JqDirective);
+
+        Assert.Equal(requests, _handler.RequestedUrls.Count);
+    }
+
+    [Fact]
+    public void One_Settings_Instance_Can_Be_Reused_For_Several_Tools()
+    {
+        _handler.Respond("https://example.com/yq-linux-amd64", FakeHttpHandler.Ok(RawContent));
+        var settings = new DownloadToolSettings().WithSha256(TestHashes.Sha256(RawContent));
+
+        CreateRunner().Install("jq", "1.8.2", "https://example.com/jq-linux-amd64", settings);
+        var yq = Assert.Single(CreateRunner().Install("yq", "4.0.0", "https://example.com/yq-linux-amd64", settings));
+
+        Assert.EndsWith("/tools/yq.4.0.0/yq", yq.FullPath, StringComparison.Ordinal);
+        Assert.Null(settings.Package);
+    }
+
+    [Fact]
+    public void Install_With_Settings_Without_Integrity_Suggests_A_Settings_Call()
+    {
+        var exception = Assert.Throws<CakeException>(
+            () => CreateRunner().Install("jq", "1.8.2", "https://example.com/jq-{os}-{arch}", new DownloadToolSettings()));
+
+        Assert.Contains($"Add .WithSha256(\"linux-x64\", \"{TestHashes.Sha256(RawContent)}\") to the DownloadToolSettings", exception.Message);
+        Assert.Empty(_context.Tools.Registered);
+    }
+
+    [Fact]
+    public void DownloadTool_With_Settings_Rejects_Null_Arguments()
+    {
+        var settings = new DownloadToolSettings();
+        Assert.Throws<ArgumentNullException>(() => _context.DownloadTool((DownloadToolSettings)null!));
+        Assert.Throws<ArgumentNullException>(() => DownloadToolAliases.DownloadTool(null!, settings));
+        Assert.Throws<ArgumentNullException>(() => _context.DownloadTool(null!, "1.8.2", "https://example.com/jq", settings));
+        Assert.Throws<ArgumentNullException>(() => _context.DownloadTool("jq", null!, "https://example.com/jq", settings));
+        Assert.Throws<ArgumentNullException>(() => _context.DownloadTool("jq", "1.8.2", null!, settings));
+        Assert.Throws<ArgumentNullException>(() => _context.DownloadTool("jq", "1.8.2", "https://example.com/jq", null!));
+    }
+
+    [Fact]
+    public void DownloadTool_With_Incomplete_Settings_Fails_Before_Any_Request()
+    {
+        var exception = Assert.Throws<CakeException>(() => _context.DownloadTool(new DownloadToolSettings().WithPackage("jq")));
+
+        Assert.StartsWith("DownloadToolSettings for 'jq' needs a version", exception.Message, StringComparison.Ordinal);
+        Assert.Empty(_handler.RequestedUrls);
+    }
+
     private DownloadToolRunner CreateRunner() => new(_context, new DownloadPackageInstaller(
         _context.Environment,
         _context.FileSystem,

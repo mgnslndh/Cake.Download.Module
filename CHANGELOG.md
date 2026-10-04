@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Cake's tool locator, so runs that don't execute that task (other targets, `--dryrun`) download nothing. It takes the
   same directive as `#tool`, as a `string` or `Uri`. Scripts load the alias with
   `#addin nuget:?package=Cake.Download.Module`; Frosting and Cake.Sdk need only the package reference.
+- `DownloadToolSettings`, a typed alternative to the directive string: `DownloadTool(package, version, url, settings)`
+  and `DownloadTool(settings)` take fluent settings such as `WithSha256(rid, hash)`, `WithChecksums(file, hash)`,
+  `WithOs(…)` and `WithDialect(DownloadDialect.DotNet)`. `ToDirective()` and `ToDirectiveUri()` write the settings as
+  a `download:` directive for `InstallTool`. Error messages for settings suggest the method to add instead of a
+  directive parameter.
 
 ### Fixed
 

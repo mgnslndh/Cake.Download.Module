@@ -31,6 +31,12 @@ internal sealed class DownloadToolRunner(ICakeContext context, DownloadPackageIn
         return Install(reference, DirectiveSource.Directive);
     }
 
+    public IReadOnlyCollection<FilePath> Install(DownloadToolSettings settings) =>
+        Install(new PackageReference(settings.ToDirective()), DirectiveSource.Settings);
+
+    public IReadOnlyCollection<FilePath> Install(string package, string version, string url, DownloadToolSettings settings) =>
+        Install(settings.WithIdentity(package, version, url));
+
     internal IReadOnlyCollection<FilePath> Install(PackageReference reference, DirectiveSource source)
     {
         var toolsPath = context.Configuration.GetToolPath(context.Environment.WorkingDirectory, context.Environment);
