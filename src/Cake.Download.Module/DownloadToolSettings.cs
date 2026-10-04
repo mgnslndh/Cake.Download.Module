@@ -328,7 +328,7 @@ public sealed class DownloadToolSettings
     }
 
     private static string Merge(string argument, string value, string property, string? current) =>
-        current is null || string.Equals(current, value, StringComparison.Ordinal)
+        string.IsNullOrEmpty(current) || string.Equals(current, value, StringComparison.Ordinal)
             ? value
             : throw new CakeException($"The {argument} argument '{value}' conflicts with DownloadToolSettings.{property} '{current}'. Set it in one place.");
 

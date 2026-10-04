@@ -22,7 +22,7 @@ public static class DownloadToolAliases
     /// <exception cref="CakeException">The directive is invalid, or downloading, verifying or extracting failed.</exception>
     /// <example>
     /// <code>
-    /// Task("Sbom").Does(() =>
+    /// Task("Report").Does(() =>
     /// {
     ///     DownloadTool("download:https://github.com/jqlang/jq/releases/download/jq-{version}/jq-{os}-{arch}{exe}?package=jq&amp;version=1.8.2&amp;os.darwin=macos&amp;checksums=sha256sum.txt&amp;checksums_sha256=dc86824a41c165ece971ff691aff6e08bbfe6e1d1f531688b47ee78c283a85cd");
     /// });

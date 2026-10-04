@@ -108,7 +108,7 @@ Cake .NET Tool (`build.cake`): load the package as an addin (keep `#module` too 
 ```csharp
 #addin nuget:?package=Cake.Download.Module&version=0.1.0-preview.1
 
-Task("Sbom").Does(() =>
+Task("Report").Does(() =>
 {
     DownloadTool("download:https://github.com/jqlang/jq/releases/download/jq-{version}/jq-{os}-{arch}{exe}?package=jq&version=1.8.2&os.darwin=macos&checksums=sha256sum.txt&checksums_sha256=dc86824a41c165ece971ff691aff6e08bbfe6e1d1f531688b47ee78c283a85cd");
     StartProcess(Context.Tools.Resolve(IsRunningOnWindows() ? "jq.exe" : "jq"), "--version");
@@ -120,7 +120,8 @@ when it is called inside a task.
 
 Cake Frosting: `context.DownloadTool(...)` in the task's `Run`, with `using Cake.Download.Module;`. `UseModule` is
 not needed for the alias. Injecting `Cake.Frosting.IToolInstaller` into the task and calling
-`Install(new PackageReference("download:…"))` also works.
+`Install(new PackageReference("download:…"))` also works, but the installer for `download:` comes from the module, so
+that needs `UseModule<DownloadModule>()`.
 
 `DownloadTool` returns the registered files, but Cake's tool aliases and `Context.Tools.Resolve(...)` find the tool
 without them.
@@ -167,7 +168,9 @@ DownloadTool(new DownloadToolSettings()
 | `WithInclude(glob)`, `WithExclude(glob)` (repeatable) | `include`, `exclude` |
 
 Leave out the integrity option once, and the error message contains the exact method to add, with the hash of what
-was downloaded. Validation is the directive's: settings are written out as a directive and parsed.
+was downloaded. For a checksums file, set the `ChecksumsFile` property alone (for example
+`new DownloadToolSettings { ChecksumsFile = "sha256sum.txt" }`), and the error message gives the `.WithChecksums(…)`
+call with the checksums file's hash. Validation is the directive's: settings are written out as a directive and parsed.
 
 `ToDirective()` and `ToDirectiveUri()` turn settings into a directive for installs that run up front, e.g.
 `InstallTool(settings.ToDirective())` in Cake.Sdk or `.InstallTool(settings.ToDirectiveUri())` in Frosting.

@@ -269,6 +269,16 @@ public sealed class DownloadToolSettingsTests
         Assert.Equal(message, exception.Message);
     }
 
+    [Fact]
+    public void WithIdentity_Treats_An_Empty_Property_As_Unset()
+    {
+        var settings = new DownloadToolSettings { Url = string.Empty }.WithPackage("jq").WithVersion("1.8.2");
+
+        var filled = settings.WithIdentity("jq", "1.8.2", "https://example.com/jq-{os}");
+
+        Assert.Equal("https://example.com/jq-{os}", filled.Url);
+    }
+
     private static DownloadToolSettings Minimal() =>
         new DownloadToolSettings().WithPackage("jq").WithVersion("1.8.2").WithUrl("https://example.com/jq-{os}");
 

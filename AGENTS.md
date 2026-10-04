@@ -2,8 +2,8 @@
 
 ## Cake Module Guidelines
 
-This is a Cake **module**: it is loaded with `#module`, `UseModule<DownloadModule>()` or `#:package`, and Cake never
-installs a module's NuGet dependencies.
+This is a Cake **module**: it is loaded with `#module`, `UseModule<DownloadModule>()`, `#:package` or `#addin` (for the `DownloadTool`
+alias), and Cake never installs a module's NuGet dependencies.
 
 - **No runtime dependencies:** only BCL APIs. `PackageVerifier` fails the Pack target if the nupkg declares any
   dependency.
@@ -29,5 +29,5 @@ installs a module's NuGet dependencies.
 Leave out CI, tests, the build and refactoring. Breaking changes start with `**Breaking:**`. Don't add version headings
 or dates; they are added when a release is tagged.
 
-For a stable release, update the README install snippets (`#module …&version=X.Y.Z` and
-`#:package Cake.Download.Module@X.Y.Z`) to the new version; the `Release-Notes` gate enforces this.
+For a stable release, update the README install snippets (`#module …&version=X.Y.Z`,
+`#addin nuget:?package=Cake.Download.Module&version=X.Y.Z` and `#:package Cake.Download.Module@X.Y.Z`) to the new version; the `Release-Notes` gate enforces this.
