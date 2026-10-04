@@ -1,0 +1,6 @@
+<!-- The build tests pin their own package versions. -->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

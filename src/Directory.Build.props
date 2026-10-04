@@ -1,0 +1,58 @@
+<Project>
+
+  <Import Project="$(MSBuildThisFileDirectory)..\build\MinVer.props" />
+
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <LangVersion>preview</LangVersion>
+
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Repository Information">
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/mgnslndh/Cake.Download.Module</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Package Information">
+    <IsPackable>false</IsPackable>
+    <Copyright>Copyright © Magnus Lindhe</Copyright>
+    <PackageTags>cake,cake-module,cake-build,download,tool,github,release,binary</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/mgnslndh/Cake.Download.Module</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Authors>Magnus Lindhe</Authors>
+    <Description>Cake module that installs tools from HTTPS URLs and GitHub release assets with the download: scheme: platform placeholders, mandatory SHA-256 verification, zip/tar.gz extraction.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\icon.png" Pack="true" PackagePath="\" Visible="false"/>
+    <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" Visible="false"/>
+  </ItemGroup>
+
+  <PropertyGroup Label="Deterministic Build" Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Source Link">
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)CodeAnalysis.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)StyleCop.json" Link="StyleCop.json" />
+  </ItemGroup>
+</Project>

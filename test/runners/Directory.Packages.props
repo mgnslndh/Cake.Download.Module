@@ -1,0 +1,6 @@
+<!-- Runner templates pin their own versions (Frosting.csproj properties, cake.cs #:package). -->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
