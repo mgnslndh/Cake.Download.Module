@@ -43,7 +43,7 @@ public static partial class ReadmeInstallVersion
             .ToList();
 
         var problems = new List<string>();
-        if (modules.Count == 0)
+        if (!modules.Any(module => module.Directive.StartsWith("#module", StringComparison.Ordinal)))
         {
             problems.Add("no '#module nuget:?package=Cake.Download.Module&version=…' snippet");
         }
@@ -67,8 +67,8 @@ public static partial class ReadmeInstallVersion
         }
     }
 
-    // "#module nuget:?package=Cake.Download.Module&version=1.2.0", with any other query parameters
-    [GeneratedRegex(@"^[ \t]*#module[ \t]+nuget:\?package=Cake\.Download\.Module(?<query>(?:&\S*)?)[ \t]*$", RegexOptions.Multiline)]
+    // "#module nuget:?package=Cake.Download.Module&version=1.2.0" or the same with #addin, with any other query parameters
+    [GeneratedRegex(@"^[ \t]*#(?:module|addin)[ \t]+nuget:\?package=Cake\.Download\.Module(?<query>(?:&\S*)?)[ \t]*$", RegexOptions.Multiline)]
     private static partial Regex ModuleDirective();
 
     [GeneratedRegex(@"&version=(?<version>[^&\s]+)")]

@@ -95,6 +95,27 @@ public sealed class ReadmeInstallVersionTests
         Assert.Contains("'#module nuget:?package=Cake.Download.Module' has no version", exception.Message);
     }
 
+    [Fact]
+    public void Check_Rejects_A_Stale_Addin_Snippet()
+    {
+        var readme = Readme + "\n\n```csharp\n#addin nuget:?package=Cake.Download.Module&version=1.1.0\n```\n";
+
+        var result = Record.Exception(() => ReadmeInstallVersion.Check(readme, "v1.2.0"));
+
+        var exception = Assert.IsType<CakeException>(result);
+        Assert.Contains("'#addin nuget:?package=Cake.Download.Module&version=1.1.0' installs 1.1.0", exception.Message);
+    }
+
+    [Fact]
+    public void Check_Accepts_An_Addin_Snippet_That_Names_The_Tag_Version()
+    {
+        var readme = Readme + "\n\n```csharp\n#addin nuget:?package=Cake.Download.Module&version=1.2.0\n```\n";
+
+        var result = Record.Exception(() => ReadmeInstallVersion.Check(readme, "v1.2.0"));
+
+        Assert.Null(result);
+    }
+
     [Theory]
     [InlineData("#module nuget:?package=Cake.Download.Module&version=1.2.0", "no '#module nuget:?package=Cake.Download.Module&version=…' snippet")]
     [InlineData("#:package Cake.Download.Module@1.2.0", "no '#:package Cake.Download.Module@…' snippet")]
