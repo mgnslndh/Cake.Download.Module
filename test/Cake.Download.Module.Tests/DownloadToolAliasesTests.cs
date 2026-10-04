@@ -94,9 +94,21 @@ public sealed class DownloadToolAliasesTests : IDisposable
         var exception = Assert.Throws<CakeException>(
             () => _context.DownloadTool(new Uri("download:https://example.com/{version}/jq?version=1.8.2")));
 
-        Assert.Equal(
-            "Invalid download directive 'download:https://example.com/{version}/jq?version=1.8.2': the 'package' parameter is required.",
-            exception.Message);
+        Assert.StartsWith(
+            "Invalid download directive 'download:https://example.com/{version}/jq?version=1.8.2':",
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.IsAssignableFrom<ArgumentException>(exception.InnerException);
+    }
+
+    [Theory]
+    [InlineData("foo")]
+    [InlineData("nuget:?version=1")]
+    public void DownloadTool_Names_The_Expected_Scheme_Before_Anything_Else(string value)
+    {
+        var exception = Assert.Throws<CakeException>(() => _context.DownloadTool(value));
+
+        Assert.Equal($"Invalid download directive '{value}': it must start with 'download:'.", exception.Message);
     }
 
     [Fact]

@@ -13,15 +13,19 @@ internal sealed class DownloadToolRunner(ICakeContext context, DownloadPackageIn
 {
     public IReadOnlyCollection<FilePath> Install(string directive)
     {
+        if (!directive.StartsWith(DirectiveParser.Scheme + ":", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new CakeException($"Invalid download directive '{directive}': it must start with '{DirectiveParser.Scheme}:'.");
+        }
+
         PackageReference reference;
         try
         {
             reference = new PackageReference(directive);
         }
-        catch (ArgumentException)
+        catch (ArgumentException exception)
         {
-            // Cake's PackageReference rejects a missing 'package' parameter before the directive parser sees it.
-            throw new CakeException($"Invalid download directive '{directive}': the 'package' parameter is required.");
+            throw new CakeException($"Invalid download directive '{directive}': {exception.Message}", exception);
         }
 
         return Install(reference, DirectiveSource.Directive);
