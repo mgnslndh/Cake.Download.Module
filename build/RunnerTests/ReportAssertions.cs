@@ -8,7 +8,7 @@ namespace Build.RunnerTests;
 public static partial class ReportAssertions
 {
     /// <summary>Install folders of the tools the scenario installs with <c>DownloadTool</c> inside a task.</summary>
-    public static readonly string[] OnDemandInstallFolders = ["jq.1.8.2"];
+    public static readonly string[] OnDemandInstallFolders = ["jq.1.8.2", "cyclonedx.0.30.0"];
 
     public static IReadOnlyList<string> CheckDryRun(string toolsDirectory) =>
         OnDemandInstallFolders

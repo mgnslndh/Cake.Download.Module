@@ -35,6 +35,14 @@ public sealed class ReportAssertionsTests : IDisposable
     }
 
     [Fact]
+    public void CheckDryRun_Reports_The_Settings_Install_Too()
+    {
+        Directory.CreateDirectory(Path.Combine(_tools, "cyclonedx.0.30.0"));
+
+        Assert.Equal(["--dryrun installed cyclonedx.0.30.0; DownloadTool must only install when its task runs"], ReportAssertions.CheckDryRun(_tools));
+    }
+
+    [Fact]
     public void Check_Accepts_A_Complete_Report()
     {
         Assert.Empty(ReportAssertions.Check(Linux, isWindows: false));
