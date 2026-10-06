@@ -10,7 +10,7 @@ platform, verifies its SHA-256, extracts it if it is an archive, and registers t
 Cake .NET Tool (`build.cake`):
 
 ```csharp
-#module nuget:?package=Cake.Download.Module&version=0.1.0-preview.1
+#module nuget:?package=Cake.Download.Module&version=0.1.0-preview.2
 #tool "download:https://github.com/jqlang/jq/releases/download/jq-{version}/jq-{os}-{arch}{exe}?package=jq&version=1.8.2&os.darwin=macos&checksums=sha256sum.txt&checksums_sha256=dc86824a41c165ece971ff691aff6e08bbfe6e1d1f531688b47ee78c283a85cd"
 ```
 
@@ -18,7 +18,7 @@ Cake SDK (`cake.cs`):
 
 ```csharp
 #:sdk Cake.Sdk@6.3.0
-#:package Cake.Download.Module@0.1.0-preview.1
+#:package Cake.Download.Module@0.1.0-preview.2
 
 InstallTool("download:https://github.com/jqlang/jq/releases/download/jq-{version}/jq-{os}-{arch}{exe}?package=jq&version=1.8.2&os.darwin=macos&checksums=sha256sum.txt&checksums_sha256=dc86824a41c165ece971ff691aff6e08bbfe6e1d1f531688b47ee78c283a85cd");
 ```
@@ -106,7 +106,7 @@ later runs with an unchanged tool make no network requests.
 Cake .NET Tool (`build.cake`): load the package as an addin (keep `#module` too if you also use `#tool "download:…"`):
 
 ```csharp
-#addin nuget:?package=Cake.Download.Module&version=0.1.0-preview.1
+#addin nuget:?package=Cake.Download.Module&version=0.1.0-preview.2
 
 Task("Report").Does(() =>
 {
