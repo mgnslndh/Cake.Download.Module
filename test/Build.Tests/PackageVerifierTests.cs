@@ -9,8 +9,6 @@ public sealed class PackageVerifierTests : IDisposable
     private static readonly string[] Libraries =
     [
         "lib/net8.0/Cake.Download.Module.dll", "lib/net8.0/Cake.Download.Module.xml",
-        "lib/net9.0/Cake.Download.Module.dll", "lib/net9.0/Cake.Download.Module.xml",
-        "lib/net10.0/Cake.Download.Module.dll", "lib/net10.0/Cake.Download.Module.xml",
     ];
 
     private readonly string _directory = Directory.CreateTempSubdirectory("PackageVerifierTests").FullName;
@@ -30,10 +28,23 @@ public sealed class PackageVerifierTests : IDisposable
     [Fact]
     public void Verify_Reports_Missing_Files()
     {
-        var package = CreatePackage(Libraries.Where(path => path != "lib/net9.0/Cake.Download.Module.xml"), Nuspec(Tags));
+        var package = CreatePackage(Libraries.Where(path => path != "lib/net8.0/Cake.Download.Module.xml"), Nuspec(Tags));
 
         Assert.Equal(
-            ["missing lib/net9.0/Cake.Download.Module.xml", "missing icon.png", "missing README.md"],
+            ["missing lib/net8.0/Cake.Download.Module.xml", "missing icon.png", "missing README.md"],
+            PackageVerifier.Verify(package));
+    }
+
+    [Fact]
+    public void Verify_Reports_Any_Other_Target_Framework()
+    {
+        var package = CreatePackage(
+            Libraries.Concat(["lib/net9.0/Cake.Download.Module.dll", "lib/net10.0/Cake.Download.Module.dll", "icon.png", "README.md"]),
+            Nuspec(Tags));
+
+        Assert.Equal(
+            ["unexpected lib/net10.0/; a module must target net8.0 only, because Cake loads every lib/ folder of a #module package",
+             "unexpected lib/net9.0/; a module must target net8.0 only, because Cake loads every lib/ folder of a #module package"],
             PackageVerifier.Verify(package));
     }
 

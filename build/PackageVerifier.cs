@@ -4,14 +4,15 @@ using System.Xml.Linq;
 namespace Build;
 
 /// <summary>
-/// Checks a packed Cake.Download.Module .nupkg: a library and its XML docs per target framework, the icon and README,
-/// the <c>cake-module</c> and <c>cake-addin</c> tags, and no dependencies at all, since Cake never installs a <c>#module</c>'s dependencies.
+/// Checks a packed Cake.Download.Module .nupkg: the <c>net8.0</c> library and its XML docs and no other target framework
+/// (Cake loads every <c>lib/</c> folder of a <c>#module</c> package), the icon and README, the <c>cake-module</c> and
+/// <c>cake-addin</c> tags, and no dependencies at all, since Cake never installs a <c>#module</c>'s dependencies.
 /// </summary>
 public static class PackageVerifier
 {
     private const string PackageId = "Cake.Download.Module";
 
-    private static readonly string[] TargetFrameworks = ["net8.0", "net9.0", "net10.0"];
+    private const string TargetFramework = "net8.0";
 
     private static readonly string[] RequiredTags = ["cake-module", "cake-addin"];
 
@@ -24,10 +25,18 @@ public static class PackageVerifier
         using var package = ZipFile.OpenRead(packagePath);
         var entries = new HashSet<string>(package.Entries.Select(entry => entry.FullName), StringComparer.OrdinalIgnoreCase);
 
-        foreach (var framework in TargetFrameworks)
+        RequireEntry(entries, $"lib/{TargetFramework}/{PackageId}.dll", problems);
+        RequireEntry(entries, $"lib/{TargetFramework}/{PackageId}.xml", problems);
+
+        var otherFrameworks = entries
+            .Where(entry => entry.StartsWith("lib/", StringComparison.OrdinalIgnoreCase) && entry.IndexOf('/', 4) > 4)
+            .Select(entry => entry[..(entry.IndexOf('/', 4) + 1)])
+            .Where(folder => !string.Equals(folder, $"lib/{TargetFramework}/", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.Ordinal);
+        foreach (var folder in otherFrameworks)
         {
-            RequireEntry(entries, $"lib/{framework}/{PackageId}.dll", problems);
-            RequireEntry(entries, $"lib/{framework}/{PackageId}.xml", problems);
+            problems.Add($"unexpected {folder}; a module must target {TargetFramework} only, because Cake loads every lib/ folder of a #module package");
         }
 
         RequireEntry(entries, "icon.png", problems);

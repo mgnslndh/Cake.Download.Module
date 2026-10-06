@@ -9,7 +9,11 @@ alias), and Cake never installs a module's NuGet dependencies.
   dependency.
 - **Cake references:** `Cake.Core` with `PrivateAssets="all"`, at the lowest compatible version (6.0.0). Raise it only
   when a newer Cake API is required, and say why in the commit message.
-- **Target frameworks:** `net8.0`, `net9.0` and `net10.0`.
+- **Target framework:** `net8.0` only, per Cake's
+  [module best practices](https://cakebuild.net/docs/extending/modules/best-practices) §2.5–2.6. Cake loads every
+  `lib/` folder of a `#module` package ([cake-build/cake#2256](https://github.com/cake-build/cake/issues/2256)), which
+  logs warnings and, when the same package is also loaded with `#addin`, can make the addin's aliases disappear.
+  `PackageVerifier` fails the Pack target on any other `lib/` folder.
 - **Public API:** only `DownloadModule`, `DownloadPackageInstaller`, `DownloadToolAliases`, `DownloadToolSettings`,
   `DownloadDialect` and `DownloadFormat` are public. Everything else is `internal`, tested through
   `InternalsVisibleTo`.

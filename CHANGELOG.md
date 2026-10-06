@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The package now targets `net8.0` only, as Cake's module best practices recommend. `#module` no longer logs
+  "Could not load module" warnings for the `net9.0` and `net10.0` assemblies, and loading the package with both
+  `#module` and `#addin` works on Linux and macOS (before, the aliases could silently be missing). It still runs on
+  Cake's .NET 8, 9 and 10 runners.
 - `filename` values that would place the download outside the install folder (e.g. `C:evil.exe` on Windows) are now rejected.
   `filename` must now start with a letter or digit and contain only letters, digits, `.`, `_`, `+` and `-`, so names with
   spaces or colons are rejected. Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM0`-`COM9`, `LPT0`-`LPT9`, and their superscript variants `COM¹`–`COM³`, `LPT¹`–`LPT³`,
