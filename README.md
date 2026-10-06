@@ -96,6 +96,85 @@ Each tool is installed into `<tools>/<package>.<version>/` (Cake's tools folder,
 extracted verbatim. A `.cake-download.json` file records what was installed, and later builds with the same directive
 make no network requests. Different versions are installed side by side and never deleted automatically.
 
+## Installing a tool only when a task runs
+
+`#tool`, Frosting's `CakeHost.InstallTool` and a top-level Cake.Sdk `InstallTool` install every tool before the
+target runs, on every run: other targets, `--dryrun` and `--tree` included. For a large tool that only one task needs,
+call the `DownloadTool` alias inside that task instead. It installs and registers the tool when the task runs, and
+later runs with an unchanged tool make no network requests.
+
+Cake .NET Tool (`build.cake`): load the package as an addin (keep `#module` too if you also use `#tool "download:…"`):
+
+```csharp
+#addin nuget:?package=Cake.Download.Module&version=0.1.0-preview.1
+
+Task("Report").Does(() =>
+{
+    DownloadTool("download:https://github.com/jqlang/jq/releases/download/jq-{version}/jq-{os}-{arch}{exe}?package=jq&version=1.8.2&os.darwin=macos&checksums=sha256sum.txt&checksums_sha256=dc86824a41c165ece971ff691aff6e08bbfe6e1d1f531688b47ee78c283a85cd");
+    StartProcess(Context.Tools.Resolve(IsRunningOnWindows() ? "jq.exe" : "jq"), "--version");
+});
+```
+
+Cake SDK (`cake.cs`): the same call inside `.Does(...)`. Cake.Sdk's own `InstallTool(...)` also installs immediately
+when it is called inside a task.
+
+Cake Frosting: `context.DownloadTool(...)` in the task's `Run`, with `using Cake.Download.Module;`. `UseModule` is
+not needed for the alias. Injecting `Cake.Frosting.IToolInstaller` into the task and calling
+`Install(new PackageReference("download:…"))` also works, but the installer for `download:` comes from the module, so
+that needs `UseModule<DownloadModule>()`.
+
+`DownloadTool` returns the registered files, but Cake's tool aliases and `Context.Tools.Resolve(...)` find the tool
+without them.
+
+## Typed settings
+
+`DownloadToolSettings` describes the same download as a directive, with methods instead of parameters:
+
+```csharp
+DownloadTool(
+    package: "cyclonedx",
+    version: "0.30.0",
+    url: "https://github.com/CycloneDX/cyclonedx-cli/releases/download/v{version}/cyclonedx-{rid}{exe}",
+    settings: new DownloadToolSettings()
+        .WithDialect(DownloadDialect.DotNet)
+        .WithSha256("win-x64", "1f563ba9644d2f2966fc8029fd701ca4af4f388d44c017c1d60559a1ecc9114f")
+        .WithSha256("linux-x64", "f89876326620f5fc78a9b27cc1af57d6ed13d019aab87490e1246a44a910babb")
+        .WithSha256("osx-arm64", "dabbaf07e543e7996f708147475e2daa69ddf8a8683c5b06febc7d3f074e5e24"));
+```
+
+To avoid three positional strings, put them in the settings and call `DownloadTool(settings)`:
+
+```csharp
+DownloadTool(new DownloadToolSettings()
+    .WithPackage("cyclonedx")
+    .WithVersion("0.30.0")
+    .WithUrl("https://github.com/CycloneDX/cyclonedx-cli/releases/download/v{version}/cyclonedx-{rid}{exe}")
+    .WithDialect(DownloadDialect.DotNet)
+    .WithSha256("linux-x64", "f89876326620f5fc78a9b27cc1af57d6ed13d019aab87490e1246a44a910babb"));
+```
+
+| Method | Directive parameter |
+|---|---|
+| `WithPackage(name)`, `WithVersion(version)` | `package`, `version` |
+| `WithUrl(template)` / `WithUrl(rid, template)` | the URL template or `url` / `url.<rid>` |
+| `WithSha256(hash)` / `WithSha256(rid, hash)` | `sha256` / `sha256.<rid>` |
+| `WithChecksums(file, hash)` | `checksums` + `checksums_sha256` |
+| `WithoutVerification()` | `sha256=skip` |
+| `WithDialect(DownloadDialect.Go \| DotNet \| Rust)` | `dialect` |
+| `WithOs(value, override)`, `WithArch(value, override)`, `WithArchive(os, extension)` | `os.<value>`, `arch.<value>`, `archive.<os>` |
+| `WithTriple(rid, triple)` | `triple.<rid>` |
+| `WithFormat(DownloadFormat.File \| Zip \| Tar \| TarGz)` | `format` |
+| `WithFileName(name)` | `filename` |
+| `WithInclude(glob)`, `WithExclude(glob)` (repeatable) | `include`, `exclude` |
+
+Leave out the integrity option once, and the error message contains the exact method to add, with the hash of what
+was downloaded. For a checksums file, set the `ChecksumsFile` property alone (for example
+`new DownloadToolSettings { ChecksumsFile = "sha256sum.txt" }`), and the error message gives the `.WithChecksums(…)`
+call with the checksums file's hash. Validation is the directive's: settings are written out as a directive and parsed.
+
+`ToDirective()` and `ToDirectiveUri()` turn settings into a directive for installs that run up front, e.g.
+`InstallTool(settings.ToDirective())` in Cake.Sdk or `.InstallTool(settings.ToDirectiveUri())` in Frosting.
+
 ## Limitations
 
 Only public HTTPS downloads: no authentication, private repositories, mirrors or signature verification. Archive

@@ -23,7 +23,7 @@ internal static partial class DirectiveParser
     private static readonly string[] Prefixes = ["sha256.", "url.", "os.", "arch.", "archive.", "triple."];
     private static readonly string[] Formats = ["file", "zip", "tar", "tar.gz"];
 
-    public static DownloadDirective Parse(PackageReference reference)
+    public static DownloadDirective Parse(PackageReference reference, DirectiveSource source = DirectiveSource.Directive)
     {
         ArgumentNullException.ThrowIfNull(reference);
 
@@ -130,6 +130,7 @@ internal static partial class DirectiveParser
             Include = parameters.TryGetValue("include", out var include) ? include : [],
             Exclude = parameters.TryGetValue("exclude", out var exclude) ? exclude : [],
             Integrity = ParseIntegrity(Single("sha256"), sha256ByRid, Single("checksums"), Single("checksums_sha256"), Fail),
+            Source = source,
         };
     }
 

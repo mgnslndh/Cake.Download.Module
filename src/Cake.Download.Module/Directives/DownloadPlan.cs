@@ -73,6 +73,8 @@ internal sealed record DownloadPlan
 
     public required IntegrityPlan Integrity { get; init; }
 
+    public DirectiveSource Source { get; init; } = DirectiveSource.Directive;
+
     public string FolderName => $"{Package}.{Version}";
 
     public string AssetName => Uri.UnescapeDataString(Url.Segments[^1]);
@@ -88,7 +90,7 @@ internal sealed record PinnedSha256(string Sha256, string Parameter) : Integrity
     public override string Fingerprint => "sha256:" + Sha256;
 }
 
-internal sealed record ChecksumsFilePlan(Uri Url, string? Sha256) : IntegrityPlan
+internal sealed record ChecksumsFilePlan(Uri Url, string? Sha256, string Reference) : IntegrityPlan
 {
     public override string Fingerprint => $"checksums:{Url.AbsoluteUri}#{Sha256}";
 }

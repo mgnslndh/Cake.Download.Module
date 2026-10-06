@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+    <!-- net8.0 only: Cake loads every lib/ folder of a #module package (cake-build/cake#2256), so further targets
+         cause warnings and break #addin of the same package. See Cake's module best practices §2.5-2.6. -->
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>

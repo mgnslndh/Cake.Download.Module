@@ -50,7 +50,7 @@ public static partial class ScriptTemplate
         }
 
         var expected = GetDirectives(script);
-        foreach (var (name, text) in new[] { ("test/runners/sdk/cake.cs", sdk), ("test/runners/frosting/Program.cs", frosting) })
+        foreach (var (name, text) in new[] { ("test/runners/sdk/cake.cs", sdk), ("test/runners/frosting", frosting) })
         {
             if (!expected.SequenceEqual(GetDirectives(text)))
             {

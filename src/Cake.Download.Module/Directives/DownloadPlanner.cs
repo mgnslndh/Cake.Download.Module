@@ -84,6 +84,7 @@ internal static class DownloadPlanner
             Include = include,
             Exclude = exclude,
             Integrity = PlanIntegrity(directive, rid, url, placeholders, platformSpecific),
+            Source = directive.Source,
         };
     }
 
@@ -100,7 +101,8 @@ internal static class DownloadPlanner
                 : new MissingIntegrityPlan($"sha256.{rid}"),
             ChecksumsFileIntegrity checksums => new ChecksumsFilePlan(
                 ParseHttps(ResolveReference(url, PlaceholderExpander.Expand(checksums.Reference, placeholders, "'checksums'")), "checksums URL", directive),
-                checksums.Sha256),
+                checksums.Sha256,
+                checksums.Reference),
             SkipIntegrity => new SkippedIntegrity(),
             _ => new MissingIntegrityPlan(platformSpecific ? $"sha256.{rid}" : "sha256"),
         };

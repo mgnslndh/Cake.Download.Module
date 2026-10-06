@@ -493,10 +493,14 @@ Follow Cake.CycloneDX (`../Cake.CycloneDX`):
   `DownloadTool(new DownloadToolSettings { … })` called from `Setup`. It is strongly typed with
   IntelliSense, but it runs at run time instead of install time, doesn't use `#tool`, and diverges from
   Cake's tool model and #2731. Rejected as the primary API.
+  *Superseded by [`2026-10-04-download-tool-alias-design.md`](2026-10-04-download-tool-alias-design.md), which adds
+  both as a complement to `#tool`, not a replacement.*
 - **Typed directive builder (approach 3).** A public builder for Frosting/SDK users, e.g.
   `DownloadTool.For("jq").Version("1.8.2").From("…").WithChecksums("sha256sum.txt", "<hex>").ToUri()`,
   that produces the `download:` URI. The directive stays the single source of truth. It can be added
   later without breaking changes.
+  *Superseded by [`2026-10-04-download-tool-alias-design.md`](2026-10-04-download-tool-alias-design.md), which adds
+  both as a complement to `#tool`, not a replacement.*
 - **`github:` scheme.** Shorter syntax, automatic integrity from the release API's `digest` field,
   asset auto-selection, private repos and GHES via a token. It would plug into the same pipeline through
   an internal resolver seam.

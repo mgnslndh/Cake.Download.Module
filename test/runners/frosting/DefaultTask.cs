@@ -9,6 +9,7 @@ using Cake.Frosting;
 namespace Frosting;
 
 [TaskName("Default")]
+[IsDependentOn(typeof(OnDemandTask))]
 public sealed class DefaultTask : FrostingTask<ScenarioContext>
 {
     private static readonly string[] ToolNames = ["jq", "gh", "rg", "cyclonedx"];

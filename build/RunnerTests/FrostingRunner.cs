@@ -29,14 +29,18 @@ public sealed class FrostingRunner : IRunner
             test.WorkDirectory(Name));
     }
 
-    public int Run(ICakeContext context, RunnerTestContext test) => RunnerProcess.Run(
-        context,
-        test,
-        "dotnet",
-        new ProcessArgumentBuilder()
+    public int Run(ICakeContext context, RunnerTestContext test, bool dryRun)
+    {
+        var arguments = new ProcessArgumentBuilder()
             .AppendQuoted(BinDirectory(test).CombineWithFilePath("Frosting.dll").FullPath)
-            .AppendSwitchQuoted("--output", "=", test.OutputDirectory(Name).FullPath),
-        test.SourceDirectory(Name));
+            .AppendSwitchQuoted("--output", "=", test.OutputDirectory(Name).FullPath);
+        if (dryRun)
+        {
+            arguments.Append("--dryrun");
+        }
+
+        return RunnerProcess.Run(context, test, "dotnet", arguments, test.SourceDirectory(Name));
+    }
 
     private DirectoryPath BinDirectory(RunnerTestContext test) => test.WorkDirectory(Name).Combine("bin");
 }
